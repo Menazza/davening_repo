@@ -26,7 +26,7 @@ export async function middleware(request: NextRequest) {
   // Check authentication for protected page routes only
   // Use a lightweight check - just verify user exists, don't fetch full profile
   try {
-    const user = await stackServerApp.getUser({ or: 'null' });
+    const user = await stackServerApp.getUser({ or: 'return-null' });
     
     if (!user) {
       // Redirect to sign-in if not authenticated
