@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
       // Create user profile if it doesn't exist
       profile = await createUserProfile(
         user.id,
-        user.primaryEmail,
+        user.primaryEmail || '',
         user.displayName || undefined
       );
     }
