@@ -207,7 +207,7 @@ export default function AttendanceCalendar({ year, month }: AttendanceCalendarPr
                 ${!isCurrentMonth ? 'text-gray-300' : 'text-gray-700'}
                 ${isCurrentDay ? 'ring-2 ring-blue-500' : ''}
                 ${status === 'learned' ? 'bg-blue-500 text-white font-semibold' : ''}
-                ${status === 'attended' && status !== 'learned' ? 'bg-green-500 text-white' : ''}
+                ${status === 'attended' ? 'bg-green-500 text-white' : ''}
                 ${status === 'late' ? 'bg-orange-500 text-white' : ''}
                 ${status === 'none' && isCurrentMonth ? 'hover:bg-gray-100' : ''}
               `}
