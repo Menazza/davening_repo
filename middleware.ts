@@ -32,7 +32,11 @@ export async function middleware(request: NextRequest) {
       // Redirect to sign-in if not authenticated
       return NextResponse.redirect(new URL('/handler/sign-in', request.url));
     }
-  } catch (error) {
+  } catch (error: any) {
+    // Log error in production for debugging
+    if (process.env.NODE_ENV === 'production') {
+      console.error('Middleware auth error:', error?.message || 'Unknown error');
+    }
     // If there's an error getting user, redirect to sign-in
     return NextResponse.redirect(new URL('/handler/sign-in', request.url));
   }

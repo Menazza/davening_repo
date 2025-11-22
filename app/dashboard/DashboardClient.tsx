@@ -96,6 +96,19 @@ export default function DashboardClient({ user, earnings, announcements }: Dashb
 
             <div className="bg-white rounded-lg shadow-md p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">Submit Attendance</h2>
+              <div className="mb-6">
+                <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Date
+                </label>
+                <input
+                  type="date"
+                  id="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  max={format(new Date(), 'yyyy-MM-dd')}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
               <AttendanceForm
                 date={selectedDate}
                 onSuccess={() => {

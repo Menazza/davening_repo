@@ -57,7 +57,7 @@ export default function Navigation({ user, onLogout }: NavigationProps) {
           </div>
           <div className="flex items-center space-x-4">
             <Link
-              href="/dashboard"
+              href="/submit-attendance"
               className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
             >
               Submit Attendance
