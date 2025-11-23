@@ -54,12 +54,22 @@ export async function createAnnouncement(
   createdBy: string,
   expiresAt?: string
 ): Promise<Announcement> {
-  const result = await sql`
-    INSERT INTO announcements (title, message, created_by, expires_at)
-    VALUES (${title}, ${message}, ${createdBy}, ${expiresAt ? `${expiresAt}::timestamptz` : null})
-    RETURNING *
-  `;
-  return result[0] as Announcement;
+  // Handle expires_at - if provided, cast to timestamptz, otherwise use NULL
+  if (expiresAt) {
+    const result = await sql`
+      INSERT INTO announcements (title, message, created_by, expires_at)
+      VALUES (${title}, ${message}, ${createdBy}, ${expiresAt}::timestamptz)
+      RETURNING *
+    `;
+    return result[0] as Announcement;
+  } else {
+    const result = await sql`
+      INSERT INTO announcements (title, message, created_by, expires_at)
+      VALUES (${title}, ${message}, ${createdBy}, NULL)
+      RETURNING *
+    `;
+    return result[0] as Announcement;
+  }
 }
 
 export async function getActiveAnnouncements(): Promise<Announcement[]> {

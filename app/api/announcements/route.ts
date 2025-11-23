@@ -50,18 +50,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Convert datetime-local format (YYYY-MM-DDTHH:mm) to ISO string for PostgreSQL
+    let expiresAtFormatted: string | undefined = undefined;
+    if (expires_at && expires_at.trim() !== '') {
+      // datetime-local returns format like "2024-01-15T10:30"
+      // Convert to ISO format that PostgreSQL can parse
+      expiresAtFormatted = new Date(expires_at).toISOString();
+    }
+
     const announcement = await createAnnouncement(
       title,
       message,
       admin.id,
-      expires_at
+      expiresAtFormatted
     );
 
     return NextResponse.json({ success: true, announcement });
   } catch (error: any) {
     console.error('Create announcement error:', error);
     return NextResponse.json(
-      { error: 'Failed to create announcement' },
+      { error: error.message || 'Failed to create announcement' },
       { status: 500 }
     );
   }

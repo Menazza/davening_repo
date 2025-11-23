@@ -571,7 +571,9 @@ export default function AdminPage() {
 function AnnouncementsManager() {
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     message: '',
@@ -599,20 +601,39 @@ function AnnouncementsManager() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
+    setMessage(null);
+    
     try {
       const response = await fetch('/api/announcements', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          title: formData.title.trim(),
+          message: formData.message.trim(),
+          expires_at: formData.expires_at || null,
+        }),
       });
 
+      const data = await response.json();
+
       if (response.ok) {
-        setShowForm(false);
+        setMessage({ type: 'success', text: 'Announcement created successfully!' });
         setFormData({ title: '', message: '', expires_at: '' });
         fetchAnnouncements();
+        // Hide form after a short delay
+        setTimeout(() => {
+          setShowForm(false);
+          setMessage(null);
+        }, 2000);
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to create announcement' });
       }
     } catch (error) {
-      alert('Failed to create announcement');
+      console.error('Error creating announcement:', error);
+      setMessage({ type: 'error', text: 'Failed to create announcement. Please try again.' });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -653,6 +674,17 @@ function AnnouncementsManager() {
 
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-gray-50 p-4 rounded-lg mb-4 space-y-4">
+          {message && (
+            <div
+              className={`px-4 py-3 rounded-md ${
+                message.type === 'success'
+                  ? 'bg-green-50 border border-green-200 text-green-700'
+                  : 'bg-red-50 border border-red-200 text-red-700'
+              }`}
+            >
+              {message.text}
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
             <input
@@ -660,7 +692,8 @@ function AnnouncementsManager() {
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+              disabled={isSubmitting}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
             />
           </div>
           <div>
@@ -670,7 +703,8 @@ function AnnouncementsManager() {
               onChange={(e) => setFormData({ ...formData, message: e.target.value })}
               required
               rows={4}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+              disabled={isSubmitting}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
             />
           </div>
           <div>
@@ -681,15 +715,31 @@ function AnnouncementsManager() {
               type="datetime-local"
               value={formData.expires_at}
               onChange={(e) => setFormData({ ...formData, expires_at: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+              disabled={isSubmitting}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
             />
           </div>
-          <button
-            type="submit"
-            className="bg-purple-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-purple-700"
-          >
-            Create Announcement
-          </button>
+          <div className="flex space-x-3">
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="bg-purple-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {isSubmitting ? 'Creating...' : 'Create Announcement'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowForm(false);
+                setFormData({ title: '', message: '', expires_at: '' });
+                setMessage(null);
+              }}
+              disabled={isSubmitting}
+              className="bg-gray-200 text-gray-700 py-2 px-4 rounded-lg font-semibold hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
         </form>
       )}
 
