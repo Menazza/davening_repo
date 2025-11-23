@@ -154,7 +154,7 @@ export async function submitAttendance(
 
   const earnings = earningsResult[0] as EarningsRecord;
 
-  // If this is Saturday or Sunday, recalculate the other day's earnings
+  // If this is Saturday or Sunday, check and update the paired day's earnings
   if (isSaturday(dateObj) || isSunday(dateObj)) {
     const otherDay = isSaturday(dateObj) ? addDays(dateObj, 1) : addDays(dateObj, -1);
     const otherDayStr = format(otherDay, 'yyyy-MM-dd');
@@ -166,11 +166,12 @@ export async function submitAttendance(
     `;
 
     if (otherDayAttendance.length > 0) {
-      // Recalculate earnings for the other day with updated weekend pair status
+      // Both days now exist, so both should use weekend rates (R150)
+      // Recalculate earnings for the other day with weekend pair status = true
       const otherDayRecord = otherDayAttendance[0] as AttendanceRecord;
-      const otherDayEarningsCalc = calculateEarnings(otherDayRecord, otherDay, isWeekendPair);
+      const otherDayEarningsCalc = calculateEarnings(otherDayRecord, otherDay, true); // Always true since both exist
 
-      // Update the other day's earnings
+      // Update the other day's earnings to weekend rates
       await sql`
         UPDATE earnings
         SET
@@ -178,13 +179,93 @@ export async function submitAttendance(
           on_time_bonus = ${otherDayEarningsCalc.on_time_bonus},
           early_bonus = ${otherDayEarningsCalc.early_bonus},
           learning_bonus = ${otherDayEarningsCalc.learning_bonus},
-          is_weekend = ${otherDayEarningsCalc.is_weekend}
+          is_weekend = true
         WHERE user_id = ${userId} AND date = ${otherDayStr}::date
+      `;
+      
+      // Also recalculate current day's earnings with weekend rates since pair is now complete
+      const currentDayEarningsCalc = calculateEarnings(attendance, dateObj, true);
+      await sql`
+        UPDATE earnings
+        SET
+          amount_earned = ${currentDayEarningsCalc.total},
+          on_time_bonus = ${currentDayEarningsCalc.on_time_bonus},
+          early_bonus = ${currentDayEarningsCalc.early_bonus},
+          learning_bonus = ${currentDayEarningsCalc.learning_bonus},
+          is_weekend = true
+        WHERE user_id = ${userId} AND date = ${dateStr}::date
+      `;
+    } else {
+      // Only one day exists, so it should use weekday rates (R100)
+      // If we just submitted and isWeekendPair is false, earnings are already correct
+      // But if we're updating and the other day was deleted, we need to recalculate
+      // Recalculate current day with weekday rates since pair is incomplete
+      const currentDayEarningsCalc = calculateEarnings(attendance, dateObj, false);
+      
+      await sql`
+        UPDATE earnings
+        SET
+          amount_earned = ${currentDayEarningsCalc.total},
+          on_time_bonus = ${currentDayEarningsCalc.on_time_bonus},
+          early_bonus = ${currentDayEarningsCalc.early_bonus},
+          learning_bonus = ${currentDayEarningsCalc.learning_bonus},
+          is_weekend = false
+        WHERE user_id = ${userId} AND date = ${dateStr}::date
       `;
     }
   }
 
   return { attendance, earnings };
+}
+
+export async function deleteAttendance(
+  userId: string,
+  date: Date
+): Promise<void> {
+  const dateStr = format(date, 'yyyy-MM-dd');
+  const dateObj = new Date(dateStr);
+
+  // Delete attendance record
+  await sql`
+    DELETE FROM attendance
+    WHERE user_id = ${userId} AND date = ${dateStr}::date
+  `;
+
+  // Delete earnings record
+  await sql`
+    DELETE FROM earnings
+    WHERE user_id = ${userId} AND date = ${dateStr}::date
+  `;
+
+  // If this was Saturday or Sunday, recalculate the other day's earnings
+  if (isSaturday(dateObj) || isSunday(dateObj)) {
+    const otherDay = isSaturday(dateObj) ? addDays(dateObj, 1) : addDays(dateObj, -1);
+    const otherDayStr = format(otherDay, 'yyyy-MM-dd');
+    
+    // Check if the other day still has attendance
+    const otherDayAttendance = await sql`
+      SELECT * FROM attendance
+      WHERE user_id = ${userId} AND date = ${otherDayStr}::date
+    `;
+
+    if (otherDayAttendance.length > 0) {
+      // Other day exists but pair is now incomplete, recalculate with weekday rates
+      const otherDayRecord = otherDayAttendance[0] as AttendanceRecord;
+      const otherDayEarningsCalc = calculateEarnings(otherDayRecord, otherDay, false); // false = weekday rates
+
+      // Update the other day's earnings to weekday rates
+      await sql`
+        UPDATE earnings
+        SET
+          amount_earned = ${otherDayEarningsCalc.total},
+          on_time_bonus = ${otherDayEarningsCalc.on_time_bonus},
+          early_bonus = ${otherDayEarningsCalc.early_bonus},
+          learning_bonus = ${otherDayEarningsCalc.learning_bonus},
+          is_weekend = false
+        WHERE user_id = ${userId} AND date = ${otherDayStr}::date
+      `;
+    }
+  }
 }
 
 export async function getAttendanceByDate(

@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, isSameDay, startOfWeek, endOfWeek, addMonths, subMonths } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, isSameDay, startOfWeek, endOfWeek, addMonths, subMonths, parseISO } from 'date-fns';
+import AttendanceForm from './AttendanceForm';
 
 interface AttendanceRecord {
   date: string;
@@ -20,6 +21,8 @@ export default function AttendanceCalendar({ year, month }: AttendanceCalendarPr
   const [isLoading, setIsLoading] = useState(true);
   const [totalLearningDays, setTotalLearningDays] = useState(0);
   const [totalLearningMinutes, setTotalLearningMinutes] = useState(0);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
   
   const now = new Date();
   const [currentDate, setCurrentDate] = useState<Date>(
@@ -108,6 +111,65 @@ export default function AttendanceCalendar({ year, month }: AttendanceCalendarPr
     if (record.came_early || !record.came_late) return 'attended';
     
     return 'none';
+  };
+
+  const handleDayClick = (day: Date) => {
+    const dateStr = format(day, 'yyyy-MM-dd');
+    // Only allow clicking on days in the current month and not in the future
+    if (isSameMonth(day, currentDate) && day <= now) {
+      setSelectedDate(dateStr);
+      setShowEditModal(true);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedDate) return;
+    
+    if (!confirm(`Are you sure you want to delete attendance for ${format(parseISO(selectedDate), 'PPP')}?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/attendance?date=${selectedDate}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        // Remove from local state
+        const newAttendance = { ...attendance };
+        delete newAttendance[selectedDate];
+        setAttendance(newAttendance);
+        
+        // Recalculate learning stats
+        let learningDays = 0;
+        let learningMinutes = 0;
+        Object.values(newAttendance).forEach((record) => {
+          if (record.learned_early) {
+            learningDays++;
+            learningMinutes += 5;
+          }
+        });
+        setTotalLearningDays(learningDays);
+        setTotalLearningMinutes(learningMinutes);
+        
+        setShowEditModal(false);
+        setSelectedDate(null);
+        
+        // Refresh attendance data
+        fetchAttendance();
+      } else {
+        alert('Failed to delete attendance');
+      }
+    } catch (error) {
+      console.error('Error deleting attendance:', error);
+      alert('An error occurred while deleting attendance');
+    }
+  };
+
+  const handleFormSuccess = () => {
+    setShowEditModal(false);
+    setSelectedDate(null);
+    fetchAttendance();
   };
 
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -199,17 +261,21 @@ export default function AttendanceCalendar({ year, month }: AttendanceCalendarPr
           const isCurrentMonth = isSameMonth(day, targetDate);
           const isCurrentDay = isToday(day);
           
+          const canClick = isCurrentMonth && day <= now;
+          
           return (
             <div
               key={idx}
+              onClick={() => handleDayClick(day)}
               className={`
-                aspect-square flex items-center justify-center text-sm rounded
+                aspect-square flex items-center justify-center text-sm rounded transition-all
                 ${!isCurrentMonth ? 'text-gray-300' : 'text-gray-700'}
                 ${isCurrentDay ? 'ring-2 ring-blue-500' : ''}
                 ${status === 'learned' ? 'bg-blue-500 text-white font-semibold' : ''}
                 ${status === 'attended' ? 'bg-green-500 text-white' : ''}
                 ${status === 'late' ? 'bg-orange-500 text-white' : ''}
-                ${status === 'none' && isCurrentMonth ? 'hover:bg-gray-100' : ''}
+                ${canClick ? 'cursor-pointer hover:ring-2 hover:ring-blue-400 hover:ring-opacity-50' : ''}
+                ${status === 'none' && isCurrentMonth && canClick ? 'hover:bg-gray-100' : ''}
               `}
             >
               {format(day, 'd')}
@@ -229,7 +295,60 @@ export default function AttendanceCalendar({ year, month }: AttendanceCalendarPr
             <span className="ml-2 font-semibold text-gray-900">{totalLearningMinutes} min</span>
           </div>
         </div>
+        <p className="text-xs text-gray-500 mt-2 text-center">
+          Click on any day to edit or delete attendance
+        </p>
       </div>
+
+      {/* Edit/Delete Modal */}
+      {showEditModal && selectedDate && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowEditModal(false);
+              setSelectedDate(null);
+            }
+          }}
+        >
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold text-gray-900">
+                  {format(parseISO(selectedDate), 'EEEE, MMMM d, yyyy')}
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setSelectedDate(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="mb-4">
+                <AttendanceForm
+                  date={selectedDate}
+                  onSuccess={handleFormSuccess}
+                />
+              </div>
+
+              <div className="border-t pt-4">
+                <button
+                  onClick={handleDelete}
+                  className="w-full px-4 py-2 bg-red-600 text-white rounded-md font-semibold hover:bg-red-700 transition-colors"
+                >
+                  Delete Attendance
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

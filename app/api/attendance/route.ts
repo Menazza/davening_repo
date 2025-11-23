@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { submitAttendance, getAttendanceByDate } from '@/lib/attendance';
+import { submitAttendance, getAttendanceByDate, deleteAttendance } from '@/lib/attendance';
 import { getAuthenticatedUser } from '@/lib/server-auth';
 
 export async function POST(request: NextRequest) {
@@ -47,6 +47,29 @@ export async function GET(request: NextRequest) {
     console.error('Get attendance error:', error);
     return NextResponse.json(
       { error: 'Failed to get attendance' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const user = await getAuthenticatedUser();
+
+    const { searchParams } = new URL(request.url);
+    const date = searchParams.get('date');
+
+    if (!date) {
+      return NextResponse.json({ error: 'Date is required' }, { status: 400 });
+    }
+
+    await deleteAttendance(user.id, new Date(date));
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error('Delete attendance error:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete attendance' },
       { status: 500 }
     );
   }
