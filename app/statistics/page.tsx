@@ -51,6 +51,13 @@ export default function StatisticsPage() {
         return;
       }
       const data = await response.json();
+      
+      // Redirect admins to admin portal
+      if (data.user.is_admin) {
+        router.push('/admin');
+        return;
+      }
+      
       setUser(data.user);
       // Don't call fetchStats here - let the useEffect handle it
     } catch (error) {

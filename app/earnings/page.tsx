@@ -71,6 +71,12 @@ export default function EarningsPage() {
         earningsHistoryResponse.ok ? earningsHistoryResponse.json() : Promise.resolve(null),
       ]);
 
+      // Redirect admins to admin portal
+      if (authData.user.is_admin) {
+        router.push('/admin');
+        return;
+      }
+      
       setUser(authData.user);
 
       if (earningsData?.earnings) {

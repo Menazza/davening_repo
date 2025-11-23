@@ -17,23 +17,22 @@ export default function Navigation({ user, onLogout }: NavigationProps) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const navItems = [
-    { href: '/dashboard', label: 'Dashboard' },
-    { href: '/statistics', label: 'Statistics' },
-    { href: '/profile', label: 'Profile' },
-    { href: '/earnings', label: 'Earnings' },
-  ];
-
-  if (user.is_admin) {
-    navItems.push({ href: '/admin', label: 'Admin Portal' });
-  }
+  // Admins only see admin portal, students see student pages
+  const navItems = user.is_admin
+    ? [{ href: '/admin', label: 'Admin Portal' }]
+    : [
+        { href: '/dashboard', label: 'Dashboard' },
+        { href: '/statistics', label: 'Statistics' },
+        { href: '/profile', label: 'Profile' },
+        { href: '/earnings', label: 'Earnings' },
+      ];
 
   return (
     <nav className="bg-white shadow-md border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center space-x-4 md:space-x-8">
-            <Link href="/dashboard" className="flex items-center">
+            <Link href={user.is_admin ? "/admin" : "/dashboard"} className="flex items-center">
               <h1 className="text-lg md:text-xl font-bold text-gray-900">
                 Rabbi Hendler's Minyan
               </h1>
@@ -61,12 +60,14 @@ export default function Navigation({ user, onLogout }: NavigationProps) {
           
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center space-x-4">
-            <Link
-              href="/submit-attendance"
-              className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
-            >
-              Submit Attendance
-            </Link>
+            {!user.is_admin && (
+              <Link
+                href="/submit-attendance"
+                className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+              >
+                Submit Attendance
+              </Link>
+            )}
             <span className="text-sm text-gray-600">
               {user.full_name || user.email}
             </span>
@@ -80,12 +81,14 @@ export default function Navigation({ user, onLogout }: NavigationProps) {
 
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center space-x-2">
-            <Link
-              href="/submit-attendance"
-              className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-md hover:bg-blue-700 transition-colors"
-            >
-              Submit
-            </Link>
+            {!user.is_admin && (
+              <Link
+                href="/submit-attendance"
+                className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-md hover:bg-blue-700 transition-colors"
+              >
+                Submit
+              </Link>
+            )}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"

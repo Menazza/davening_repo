@@ -7,6 +7,11 @@ export default async function ProfilePage() {
   
   try {
     user = await getAuthenticatedUser();
+    
+    // Redirect admins to admin portal
+    if (user.is_admin) {
+      redirect('/admin');
+    }
   } catch (error) {
     redirect('/handler/sign-in');
   }

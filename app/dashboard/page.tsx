@@ -13,6 +13,11 @@ export default async function DashboardPage() {
     // Fetch all data in parallel on the server
     user = await getAuthenticatedUser();
     
+    // Redirect admins to admin portal
+    if (user.is_admin) {
+      redirect('/admin');
+    }
+    
     // Fetch earnings and announcements in parallel
     [earnings, announcements] = await Promise.all([
       getUserEarnings(user.id).catch(() => null),

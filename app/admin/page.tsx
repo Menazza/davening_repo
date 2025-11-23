@@ -22,14 +22,25 @@ interface UserEarnings {
   total_owed: number;
 }
 
+interface AdminStats {
+  totalUsers: number;
+  totalEarned: number;
+  totalPaid: number;
+  totalOwed: number;
+  usersWithBalance: number;
+}
+
 export default function AdminPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [users, setUsers] = useState<UserEarnings[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<UserEarnings[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'name' | 'owed' | 'earned'>('owed');
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<
-    'users' | 'payments' | 'announcements' | 'shul-times'
-  >('users');
+    'dashboard' | 'users' | 'announcements' | 'shul-times'
+  >('dashboard');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentDate, setPaymentDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -38,6 +49,10 @@ export default function AdminPage() {
   useEffect(() => {
     checkAuth();
   }, []);
+
+  useEffect(() => {
+    filterAndSortUsers();
+  }, [users, searchQuery, sortBy]);
 
   const checkAuth = async () => {
     try {
@@ -70,6 +85,53 @@ export default function AdminPage() {
     } catch (error) {
       console.error('Error fetching users:', error);
     }
+  };
+
+  const filterAndSortUsers = () => {
+    let filtered = [...users];
+
+    // Filter by search query
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (u) =>
+          u.full_name?.toLowerCase().includes(query) ||
+          u.email.toLowerCase().includes(query)
+      );
+    }
+
+    // Sort
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'name':
+          const nameA = (a.full_name || a.email).toLowerCase();
+          const nameB = (b.full_name || b.email).toLowerCase();
+          return nameA.localeCompare(nameB);
+        case 'owed':
+          return b.total_owed - a.total_owed;
+        case 'earned':
+          return b.total_earned - a.total_earned;
+        default:
+          return 0;
+      }
+    });
+
+    setFilteredUsers(filtered);
+  };
+
+  const calculateStats = (): AdminStats => {
+    const totalEarned = users.reduce((sum, u) => sum + u.total_earned, 0);
+    const totalPaid = users.reduce((sum, u) => sum + u.total_paid, 0);
+    const totalOwed = totalEarned - totalPaid;
+    const usersWithBalance = users.filter((u) => u.total_owed > 0).length;
+
+    return {
+      totalUsers: users.length,
+      totalEarned,
+      totalPaid,
+      totalOwed,
+      usersWithBalance,
+    };
   };
 
   const handleSubmitPayment = async (e: React.FormEvent) => {
@@ -117,7 +179,7 @@ export default function AdminPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="flex flex-col items-center">
-          <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+          <div className="w-12 h-12 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin"></div>
           <p className="mt-4 text-gray-600 text-sm">Loading...</p>
         </div>
       </div>
@@ -128,19 +190,34 @@ export default function AdminPage() {
     return null;
   }
 
+  const stats = calculateStats();
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation user={user} onLogout={handleLogout} />
 
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Admin Portal</h2>
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900">Admin Portal</h1>
+          <p className="text-gray-600 mt-1">Manage users, payments, and announcements</p>
+        </div>
 
         <div className="bg-white rounded-lg shadow-md mb-6">
           <div className="border-b border-gray-200">
-            <nav className="flex -mb-px">
+            <nav className="flex -mb-px overflow-x-auto">
+              <button
+                onClick={() => setActiveTab('dashboard')}
+                className={`px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap ${
+                  activeTab === 'dashboard'
+                    ? 'border-purple-500 text-purple-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Dashboard
+              </button>
               <button
                 onClick={() => setActiveTab('users')}
-                className={`px-6 py-3 text-sm font-medium border-b-2 ${
+                className={`px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap ${
                   activeTab === 'users'
                     ? 'border-purple-500 text-purple-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -150,7 +227,7 @@ export default function AdminPage() {
               </button>
               <button
                 onClick={() => setActiveTab('announcements')}
-                className={`px-6 py-3 text-sm font-medium border-b-2 ${
+                className={`px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap ${
                   activeTab === 'announcements'
                     ? 'border-purple-500 text-purple-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -160,7 +237,7 @@ export default function AdminPage() {
               </button>
               <button
                 onClick={() => setActiveTab('shul-times')}
-                className={`px-6 py-3 text-sm font-medium border-b-2 ${
+                className={`px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap ${
                   activeTab === 'shul-times'
                     ? 'border-purple-500 text-purple-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -172,11 +249,144 @@ export default function AdminPage() {
           </div>
 
           <div className="p-6">
+            {activeTab === 'dashboard' && (
+              <div className="space-y-6">
+                {/* Stats Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-6 text-white shadow-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-blue-100 text-sm font-medium">Total Users</p>
+                        <p className="text-3xl font-bold mt-1">{stats.totalUsers}</p>
+                      </div>
+                      <div className="bg-white bg-opacity-20 rounded-full p-3">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-6 text-white shadow-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-green-100 text-sm font-medium">Total Earned</p>
+                        <p className="text-3xl font-bold mt-1">R{stats.totalEarned.toFixed(2)}</p>
+                      </div>
+                      <div className="bg-white bg-opacity-20 rounded-full p-3">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-blue-400 to-blue-500 rounded-lg p-6 text-white shadow-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-blue-100 text-sm font-medium">Total Paid</p>
+                        <p className="text-3xl font-bold mt-1">R{stats.totalPaid.toFixed(2)}</p>
+                      </div>
+                      <div className="bg-white bg-opacity-20 rounded-full p-3">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-6 text-white shadow-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-orange-100 text-sm font-medium">Total Owed</p>
+                        <p className="text-3xl font-bold mt-1">R{stats.totalOwed.toFixed(2)}</p>
+                      </div>
+                      <div className="bg-white bg-opacity-20 rounded-full p-3">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Stats */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-gray-50 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Stats</h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Users with balance</span>
+                        <span className="font-semibold text-gray-900">{stats.usersWithBalance}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Average per user</span>
+                        <span className="font-semibold text-gray-900">
+                          R{stats.totalUsers > 0 ? (stats.totalEarned / stats.totalUsers).toFixed(2) : '0.00'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Payment rate</span>
+                        <span className="font-semibold text-gray-900">
+                          {stats.totalEarned > 0 ? ((stats.totalPaid / stats.totalEarned) * 100).toFixed(1) : '0'}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Users by Balance</h3>
+                    <div className="space-y-2">
+                      {users
+                        .filter((u) => u.total_owed > 0)
+                        .sort((a, b) => b.total_owed - a.total_owed)
+                        .slice(0, 5)
+                        .map((u) => (
+                          <div key={u.user_id} className="flex justify-between items-center text-sm">
+                            <span className="text-gray-700 truncate">
+                              {u.full_name || u.email}
+                            </span>
+                            <span className="font-semibold text-orange-600">
+                              R{u.total_owed.toFixed(2)}
+                            </span>
+                          </div>
+                        ))}
+                      {users.filter((u) => u.total_owed > 0).length === 0 && (
+                        <p className="text-gray-500 text-sm">No outstanding balances</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {activeTab === 'users' && (
               <div className="space-y-6">
+                {/* Search and Sort */}
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      placeholder="Search by name or email..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                  </div>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as 'name' | 'owed' | 'earned')}
+                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  >
+                    <option value="owed">Sort by: Balance Owed</option>
+                    <option value="earned">Sort by: Total Earned</option>
+                    <option value="name">Sort by: Name</option>
+                  </select>
+                </div>
+
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    All Users & Earnings
+                    All Users & Earnings ({filteredUsers.length})
                   </h3>
                   <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
@@ -200,8 +410,8 @@ export default function AdminPage() {
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
-                        {users.map((u) => (
-                          <tr key={u.user_id}>
+                        {filteredUsers.map((u) => (
+                          <tr key={u.user_id} className="hover:bg-gray-50">
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div className="text-sm font-medium text-gray-900">
                                 {u.full_name || u.email}
@@ -214,13 +424,15 @@ export default function AdminPage() {
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
                               R{u.total_paid.toFixed(2)}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-orange-600">
+                            <td className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${
+                              u.total_owed > 0 ? 'text-orange-600' : 'text-gray-500'
+                            }`}>
                               R{u.total_owed.toFixed(2)}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm">
                               <button
                                 onClick={() => setSelectedUserId(u.user_id)}
-                                className="text-blue-600 hover:text-blue-800 font-medium"
+                                className="text-purple-600 hover:text-purple-800 font-medium"
                               >
                                 Record Payment
                               </button>
@@ -229,6 +441,11 @@ export default function AdminPage() {
                         ))}
                       </tbody>
                     </table>
+                    {filteredUsers.length === 0 && (
+                      <div className="text-center py-8 text-gray-500">
+                        No users found matching your search.
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -252,6 +469,9 @@ export default function AdminPage() {
                           disabled
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50"
                         />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Current balance: R{users.find((u) => u.user_id === selectedUserId)?.total_owed.toFixed(2) || '0.00'}
+                        </p>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -649,4 +869,3 @@ function ShulTimesManager() {
     </div>
   );
 }
-
