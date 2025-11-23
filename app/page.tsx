@@ -15,21 +15,39 @@ interface Announcement {
 
 export default function Home() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [hasCheckedRedirect, setHasCheckedRedirect] = useState(false);
   const user = useUser();
   const router = useRouter();
 
   useEffect(() => {
-    // If user is signed in, redirect to dashboard
-    if (user) {
-      router.push('/dashboard');
+    // If user is signed in, redirect appropriately
+    if (user && !hasCheckedRedirect) {
+      setHasCheckedRedirect(true);
+      // Check if user is admin and redirect accordingly
+      fetch('/api/auth/me')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.user?.is_admin) {
+            window.location.href = '/admin';
+          } else {
+            window.location.href = '/dashboard';
+          }
+        })
+        .catch(() => {
+          // If we can't check, default to dashboard
+          window.location.href = '/dashboard';
+        });
       return;
     }
 
-    fetch('/api/announcements')
-      .then((res) => res.json())
-      .then((data) => setAnnouncements(data.announcements || []))
-      .catch((err) => console.error('Error fetching announcements:', err));
-  }, [user, router]);
+    // Only fetch announcements if user is not logged in
+    if (!user && !hasCheckedRedirect) {
+      fetch('/api/announcements')
+        .then((res) => res.json())
+        .then((data) => setAnnouncements(data.announcements || []))
+        .catch((err) => console.error('Error fetching announcements:', err));
+    }
+  }, [user, router, hasCheckedRedirect]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
