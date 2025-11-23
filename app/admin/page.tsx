@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { useUser } from '@stackframe/stack';
 import Navigation from '@/components/Navigation';
+import DateTimePicker from '@/components/DateTimePicker';
 
 interface User {
   id: string;
@@ -708,15 +709,11 @@ function AnnouncementsManager() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Expires At (optional)
-            </label>
-            <input
-              type="datetime-local"
+            <DateTimePicker
               value={formData.expires_at}
-              onChange={(e) => setFormData({ ...formData, expires_at: e.target.value })}
-              disabled={isSubmitting}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              onChange={(datetime) => setFormData({ ...formData, expires_at: datetime })}
+              minDate={new Date()}
+              label="Expires At (optional)"
             />
           </div>
           <div className="flex space-x-3">
