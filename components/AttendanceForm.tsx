@@ -106,7 +106,18 @@ export default function AttendanceForm({ date, onSuccess }: AttendanceFormProps)
           <input
             type="checkbox"
             checked={formData.came_early}
-            onChange={(e) => setFormData({ ...formData, came_early: e.target.checked })}
+            onChange={(e) => {
+              const cameEarly = e.target.checked;
+              setFormData({
+                ...formData,
+                came_early: cameEarly,
+                // If they came early, uncheck came_late
+                came_late: cameEarly ? false : formData.came_late,
+                minutes_late: cameEarly ? null : formData.minutes_late,
+                // If they uncheck came_early, also uncheck learned_early
+                learned_early: cameEarly ? formData.learned_early : false,
+              });
+            }}
             className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
           />
           <span className="text-gray-700 font-medium">
@@ -141,18 +152,28 @@ export default function AttendanceForm({ date, onSuccess }: AttendanceFormProps)
             type="checkbox"
             checked={formData.came_late}
             onChange={(e) => {
+              const cameLate = e.target.checked;
               setFormData({
                 ...formData,
-                came_late: e.target.checked,
-                minutes_late: e.target.checked ? formData.minutes_late : null,
+                came_late: cameLate,
+                minutes_late: cameLate ? formData.minutes_late : null,
+                // If they came late, uncheck came_early
+                came_early: cameLate ? false : formData.came_early,
+                learned_early: cameLate ? false : formData.learned_early,
               });
             }}
-            className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            disabled={formData.came_early}
+            className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           />
-          <span className="text-gray-700 font-medium">
+          <span className={`text-gray-700 font-medium ${formData.came_early ? 'text-gray-400' : ''}`}>
             Did you come late to shul?
           </span>
         </label>
+        {formData.came_early && (
+          <p className="text-sm text-gray-500 mt-1 ml-8">
+            (Not applicable if you came early)
+          </p>
+        )}
       </div>
 
       {formData.came_late && (
