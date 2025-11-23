@@ -9,6 +9,7 @@ import AttendanceCalendar from '@/components/AttendanceCalendar';
 import Navigation from '@/components/Navigation';
 import DatePicker from '@/components/DatePicker';
 import { format } from 'date-fns';
+import { useUser } from '@stackframe/stack';
 
 interface User {
   id: string;
@@ -38,11 +39,24 @@ interface DashboardClientProps {
 
 export default function DashboardClient({ user, earnings, announcements }: DashboardClientProps) {
   const router = useRouter();
+  const stackUser = useUser();
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
   const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
-    router.push('/');
+    try {
+      // Sign out on client side first
+      if (stackUser) {
+        await stackUser.signOut();
+      }
+      // Also call the API to ensure server-side logout
+      await fetch('/api/auth/logout', { method: 'POST' });
+      // Force hard redirect to clear all state
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Even if there's an error, redirect to home
+      window.location.href = '/';
+    }
   };
 
   return (
