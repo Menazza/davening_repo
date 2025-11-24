@@ -24,6 +24,37 @@ interface UserEarnings {
   total_owed: number;
 }
 
+interface UserProfile {
+  id: string;
+  email: string;
+  full_name?: string;
+  hebrew_name?: string;
+  bank_name?: string;
+  account_number?: string;
+  branch_code?: string;
+  account_type?: string;
+  is_admin: boolean;
+}
+
+interface PaymentRecord {
+  id: string;
+  user_id: string;
+  amount: number;
+  payment_date: string;
+  notes: string | null;
+  admin_id: string | null;
+  created_at: string;
+}
+
+interface EarningsRecord {
+  date: string;
+  amount_earned: number;
+  on_time_bonus: number;
+  early_bonus: number;
+  learning_bonus: number;
+  is_weekend: boolean;
+}
+
 interface AdminStats {
   totalUsers: number;
   totalEarned: number;
@@ -47,6 +78,11 @@ export default function AdminPage() {
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentDate, setPaymentDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [paymentNotes, setPaymentNotes] = useState('');
+  const [viewingUserId, setViewingUserId] = useState<string | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [userPayments, setUserPayments] = useState<PaymentRecord[]>([]);
+  const [userEarnings, setUserEarnings] = useState<EarningsRecord[]>([]);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -167,9 +203,45 @@ export default function AdminPage() {
       setPaymentNotes('');
       setSelectedUserId(null);
       fetchUsers();
+      // Refresh profile if viewing
+      if (viewingUserId) {
+        fetchUserDetails(viewingUserId);
+      }
     } catch (error) {
       alert('An error occurred. Please try again.');
     }
+  };
+
+  const fetchUserDetails = async (userId: string) => {
+    setIsLoadingProfile(true);
+    try {
+      const response = await fetch(`/api/admin/users/${userId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setUserProfile(data.user);
+        setUserPayments(data.payments || []);
+        setUserEarnings(data.earnings || []);
+      } else {
+        alert('Failed to load user details');
+      }
+    } catch (error) {
+      console.error('Error fetching user details:', error);
+      alert('An error occurred while loading user details');
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  };
+
+  const handleViewProfile = (userId: string) => {
+    setViewingUserId(userId);
+    fetchUserDetails(userId);
+  };
+
+  const handleCloseProfile = () => {
+    setViewingUserId(null);
+    setUserProfile(null);
+    setUserPayments([]);
+    setUserEarnings([]);
   };
 
   const stackUser = useUser();
@@ -446,12 +518,20 @@ export default function AdminPage() {
                               R{u.total_owed.toFixed(2)}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm">
-                              <button
-                                onClick={() => setSelectedUserId(u.user_id)}
-                                className="text-purple-600 hover:text-purple-800 font-medium"
-                              >
-                                Record Payment
-                              </button>
+                              <div className="flex space-x-3">
+                                <button
+                                  onClick={() => handleViewProfile(u.user_id)}
+                                  className="text-blue-600 hover:text-blue-800 font-medium"
+                                >
+                                  View Profile
+                                </button>
+                                <button
+                                  onClick={() => setSelectedUserId(u.user_id)}
+                                  className="text-purple-600 hover:text-purple-800 font-medium"
+                                >
+                                  Record Payment
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -563,6 +643,230 @@ export default function AdminPage() {
             )}
           </div>
         </div>
+
+        {/* User Profile Modal */}
+        {viewingUserId && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-gray-900">User Profile</h2>
+                <button
+                  onClick={handleCloseProfile}
+                  className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
+                >
+                  ×
+                </button>
+              </div>
+
+              {isLoadingProfile ? (
+                <div className="p-8 text-center">
+                  <div className="w-12 h-12 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin mx-auto"></div>
+                  <p className="mt-4 text-gray-600">Loading user details...</p>
+                </div>
+              ) : userProfile ? (
+                <div className="p-6 space-y-6">
+                  {/* Personal Information */}
+                  <div className="bg-gray-50 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Personal Information</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Full Name</label>
+                        <p className="text-gray-900 font-medium">{userProfile.full_name || 'Not provided'}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Hebrew Name</label>
+                        <p className="text-gray-900 font-medium">{userProfile.hebrew_name || 'Not provided'}</p>
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="text-sm font-medium text-gray-500">Email</label>
+                        <p className="text-gray-900 font-medium">{userProfile.email}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Banking Details */}
+                  <div className="bg-blue-50 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Banking Details</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Bank Name</label>
+                        <p className="text-gray-900 font-medium">{userProfile.bank_name || 'Not provided'}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Account Number</label>
+                        <p className="text-gray-900 font-medium font-mono">{userProfile.account_number || 'Not provided'}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Branch Code</label>
+                        <p className="text-gray-900 font-medium font-mono">{userProfile.branch_code || 'Not provided'}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Account Type</label>
+                        <p className="text-gray-900 font-medium">{userProfile.account_type || 'Not provided'}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Financial Summary */}
+                  <div className="bg-green-50 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Financial Summary</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Total Earned</label>
+                        <p className="text-2xl font-bold text-green-700">
+                          R{users.find((u) => u.user_id === viewingUserId)?.total_earned.toFixed(2) || '0.00'}
+                        </p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Total Paid</label>
+                        <p className="text-2xl font-bold text-blue-700">
+                          R{users.find((u) => u.user_id === viewingUserId)?.total_paid.toFixed(2) || '0.00'}
+                        </p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Balance Owed</label>
+                        <p className="text-2xl font-bold text-orange-700">
+                          R{users.find((u) => u.user_id === viewingUserId)?.total_owed.toFixed(2) || '0.00'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Payment History */}
+                  <div>
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold text-gray-900">Payment History</h3>
+                      <button
+                        onClick={() => {
+                          setSelectedUserId(viewingUserId);
+                          handleCloseProfile();
+                        }}
+                        className="bg-purple-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-purple-700 transition-colors text-sm"
+                      >
+                        Record New Payment
+                      </button>
+                    </div>
+                    {userPayments.length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Date
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Amount
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Notes
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Recorded At
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {userPayments.map((payment) => (
+                              <tr key={payment.id} className="hover:bg-gray-50">
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                                  {format(new Date(payment.payment_date), 'PP')}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-green-700">
+                                  R{payment.amount.toFixed(2)}
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-500">
+                                  {payment.notes || '-'}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                  {format(new Date(payment.created_at), 'PPp')}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
+                        No payments recorded yet.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Earnings History */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Earnings History</h3>
+                    {userEarnings.length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Date
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Base
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Early Bonus
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Learning Bonus
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Total
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Type
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {userEarnings.map((earning, idx) => (
+                              <tr key={idx} className="hover:bg-gray-50">
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                                  {format(new Date(earning.date), 'PP')}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                                  R{earning.on_time_bonus.toFixed(2)}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                                  R{earning.early_bonus.toFixed(2)}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                                  R{earning.learning_bonus.toFixed(2)}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-green-700">
+                                  R{earning.amount_earned.toFixed(2)}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                    earning.is_weekend
+                                      ? 'bg-purple-100 text-purple-700'
+                                      : 'bg-gray-100 text-gray-700'
+                                  }`}>
+                                    {earning.is_weekend ? 'Weekend' : 'Weekday'}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
+                        No earnings recorded yet.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="p-8 text-center text-gray-500">
+                  Failed to load user details.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
