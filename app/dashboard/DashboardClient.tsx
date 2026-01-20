@@ -6,6 +6,7 @@ import Link from 'next/link';
 import DaveningTimes from '@/components/DaveningTimes';
 import AttendanceCalendar from '@/components/AttendanceCalendar';
 import Navigation from '@/components/Navigation';
+import { format } from 'date-fns';
 import { useUser } from '@stackframe/stack';
 
 interface User {
