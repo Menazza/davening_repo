@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 
 interface AttendanceFormProps {
   date: string;
+  programId?: string | null;
   onSuccess?: () => void;
 }
 
@@ -15,7 +16,7 @@ interface AttendanceData {
   minutes_late: number | null;
 }
 
-export default function AttendanceForm({ date, onSuccess }: AttendanceFormProps) {
+export default function AttendanceForm({ date, programId, onSuccess }: AttendanceFormProps) {
   const [formData, setFormData] = useState<AttendanceData>({
     came_early: false,
     learned_early: false,
@@ -28,12 +29,15 @@ export default function AttendanceForm({ date, onSuccess }: AttendanceFormProps)
 
   useEffect(() => {
     loadAttendance();
-  }, [date]);
+  }, [date, programId]);
 
   const loadAttendance = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/attendance?date=${date}`);
+      const url = programId
+        ? `/api/attendance?date=${date}&program_id=${programId}`
+        : `/api/attendance?date=${date}`;
+      const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
         if (data.attendance) {
@@ -70,6 +74,7 @@ export default function AttendanceForm({ date, onSuccess }: AttendanceFormProps)
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           date,
+          program_id: programId || null,
           ...formData,
         }),
       });

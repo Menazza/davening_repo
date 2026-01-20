@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getAuthenticatedUser } from '@/lib/server-auth';
-import AttendanceFormPage from './AttendanceFormPage';
+import ProgramAttendancePage from './ProgramAttendancePage';
 
 export default async function SubmitAttendancePage() {
   let user;
@@ -16,6 +16,6 @@ export default async function SubmitAttendancePage() {
     redirect('/handler/sign-in');
   }
 
-  return <AttendanceFormPage user={user} />;
+  return <ProgramAttendancePage user={user} />;
 }
 

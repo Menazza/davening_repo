@@ -56,10 +56,10 @@ export default function Home() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
           <div className="text-center">
             <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 tracking-tight">
-              Rabbi Hendler's Minyan
+              Tracker
             </h1>
             <p className="text-sm md:text-base text-blue-100 max-w-2xl mx-auto">
-              Morning Learning & Davening Attendance System
+              Track your attendance across all your programs
             </p>
           </div>
         </div>
@@ -78,7 +78,7 @@ export default function Home() {
               </div>
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Sign In</h2>
               <p className="text-gray-600 text-sm">
-                Access your account to track attendance, earnings, and davening
+                Access your account to track attendance across all your programs
               </p>
             </div>
 
@@ -149,9 +149,9 @@ export default function Home() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">Daily Attendance</h3>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Multi-Program Tracking</h3>
               <p className="text-sm text-gray-600 leading-relaxed">
-                Submit your daily attendance for morning learning and davening
+                Track attendance for multiple programs in a single day
               </p>
             </div>
             
@@ -173,9 +173,9 @@ export default function Home() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">Track Davening</h3>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Program History</h3>
               <p className="text-sm text-gray-600 leading-relaxed">
-                View your davening attendance history and statistics
+                View your attendance history and statistics for all programs
               </p>
             </div>
           </div>
@@ -183,7 +183,7 @@ export default function Home() {
 
         {/* Footer */}
         <div className="text-center py-8 text-gray-500 text-sm">
-          <p>© {new Date().getFullYear()} Rabbi Hendler's Minyan. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Tracker. All rights reserved.</p>
         </div>
       </div>
     </div>

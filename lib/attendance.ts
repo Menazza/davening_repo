@@ -4,6 +4,7 @@ import { format, isSaturday, isSunday, addDays, isSameDay } from 'date-fns';
 export interface AttendanceRecord {
   id: string;
   user_id: string;
+  program_id: string | null;
   date: string;
   came_early: boolean;
   learned_early: boolean;
@@ -101,6 +102,7 @@ export async function submitAttendance(
   userId: string,
   date: Date,
   data: {
+    program_id?: string | null;
     came_early: boolean;
     learned_early: boolean;
     came_late: boolean;
@@ -112,9 +114,9 @@ export async function submitAttendance(
 
   // Insert or update attendance record
   const attendanceResult = await sql`
-    INSERT INTO attendance (user_id, date, came_early, learned_early, came_late, minutes_late)
-    VALUES (${userId}, ${dateStr}::date, ${data.came_early}, ${data.learned_early}, ${data.came_late}, ${data.minutes_late})
-    ON CONFLICT (user_id, date)
+    INSERT INTO attendance (user_id, program_id, date, came_early, learned_early, came_late, minutes_late)
+    VALUES (${userId}, ${data.program_id || null}, ${dateStr}::date, ${data.came_early}, ${data.learned_early}, ${data.came_late}, ${data.minutes_late})
+    ON CONFLICT (user_id, COALESCE(program_id, '00000000-0000-0000-0000-000000000000'::uuid), date)
     DO UPDATE SET
       came_early = EXCLUDED.came_early,
       learned_early = EXCLUDED.learned_early,
@@ -270,13 +272,21 @@ export async function deleteAttendance(
 
 export async function getAttendanceByDate(
   userId: string,
-  date: Date
+  date: Date,
+  programId?: string | null
 ): Promise<AttendanceRecord | null> {
   const dateStr = format(date, 'yyyy-MM-dd');
-  const result = await sql`
-    SELECT * FROM attendance
-    WHERE user_id = ${userId} AND date = ${dateStr}::date
-  `;
+  const result = programId
+    ? await sql`
+        SELECT * FROM attendance
+        WHERE user_id = ${userId} AND program_id = ${programId} AND date = ${dateStr}::date
+      `
+    : await sql`
+        SELECT * FROM attendance
+        WHERE user_id = ${userId} AND date = ${dateStr}::date
+        ORDER BY created_at DESC
+        LIMIT 1
+      `;
   return (result[0] as AttendanceRecord) || null;
 }
 

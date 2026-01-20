@@ -7,13 +7,14 @@ export async function POST(request: NextRequest) {
     const user = await getAuthenticatedUser();
 
     const body = await request.json();
-    const { date, came_early, learned_early, came_late, minutes_late } = body;
+    const { date, program_id, came_early, learned_early, came_late, minutes_late } = body;
 
     if (!date) {
       return NextResponse.json({ error: 'Date is required' }, { status: 400 });
     }
 
     const result = await submitAttendance(user.id, new Date(date), {
+      program_id: program_id || null,
       came_early: came_early || false,
       learned_early: learned_early || false,
       came_late: came_late || false,
@@ -36,12 +37,17 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const date = searchParams.get('date');
+    const program_id = searchParams.get('program_id');
 
     if (!date) {
       return NextResponse.json({ error: 'Date is required' }, { status: 400 });
     }
 
-    const attendance = await getAttendanceByDate(user.id, new Date(date));
+    const attendance = await getAttendanceByDate(
+      user.id,
+      new Date(date),
+      program_id || undefined
+    );
     return NextResponse.json({ attendance });
   } catch (error: any) {
     console.error('Get attendance error:', error);

@@ -4,8 +4,8 @@ import { stackClientApp } from "../stack/client";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Rabbi Hendler's Minyan - Attendance System",
-  description: "Morning learning and davening attendance tracking for Rabbi Hendler's Minyan",
+  title: "Tracker - Program Attendance System",
+  description: "Track your attendance across multiple programs and activities",
 };
 
 export default function RootLayout({

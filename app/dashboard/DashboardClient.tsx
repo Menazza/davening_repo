@@ -3,12 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import AttendanceForm from '@/components/AttendanceForm';
 import DaveningTimes from '@/components/DaveningTimes';
 import AttendanceCalendar from '@/components/AttendanceCalendar';
 import Navigation from '@/components/Navigation';
-import DatePicker from '@/components/DatePicker';
-import { format } from 'date-fns';
 import { useUser } from '@stackframe/stack';
 
 interface User {
@@ -40,7 +37,6 @@ interface DashboardClientProps {
 export default function DashboardClient({ user, earnings, announcements }: DashboardClientProps) {
   const router = useRouter();
   const stackUser = useUser();
-  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
   const handleLogout = async () => {
     try {
@@ -65,7 +61,7 @@ export default function DashboardClient({ user, earnings, announcements }: Dashb
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome, {user.full_name || user.email}!</h1>
-        <p className="text-gray-600 mb-8">Submit your daily attendance for morning learning and davening</p>
+        <p className="text-gray-600 mb-8">Track your attendance across all your programs</p>
 
         {earnings && (
           <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg shadow-lg p-6 mb-8">
@@ -111,21 +107,18 @@ export default function DashboardClient({ user, earnings, announcements }: Dashb
 
             <div className="bg-white rounded-lg shadow-md p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">Submit Attendance</h2>
-              <div className="mb-6">
-                <DatePicker
-                  value={selectedDate}
-                  onChange={setSelectedDate}
-                  maxDate={new Date()}
-                  label="Select Date"
-                />
-              </div>
-              <AttendanceForm
-                date={selectedDate}
-                onSuccess={() => {
-                  // Optionally refresh page or update state
-                  window.location.reload();
-                }}
-              />
+              <p className="text-gray-600 mb-4">
+                Submit attendance for any of your programs. You can track multiple programs each day.
+              </p>
+              <Link
+                href="/submit-attendance"
+                className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Submit Attendance
+              </Link>
             </div>
           </div>
 

@@ -34,7 +34,7 @@ export default function Navigation({ user, onLogout }: NavigationProps) {
           <div className="flex items-center space-x-4 md:space-x-8">
             <Link href={user.is_admin ? "/admin" : "/dashboard"} className="flex items-center">
               <h1 className="text-lg md:text-xl font-bold text-gray-900">
-                Rabbi Hendler's Minyan
+                Tracker
               </h1>
             </Link>
             {/* Desktop Navigation */}
