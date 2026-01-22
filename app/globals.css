@@ -26,3 +26,142 @@ body {
   }
 }
 
+/* Stack Auth form styling for mobile-optimized login portal */
+[data-stack-handler] {
+  background: transparent !important;
+}
+
+[data-stack-handler] form {
+  background: transparent !important;
+}
+
+/* Mobile-optimized inputs - larger touch targets, better spacing */
+[data-stack-handler] input {
+  border: 2px solid #e5e7eb !important;
+  border-radius: 0.75rem !important;
+  padding: 1rem 1.25rem !important;
+  min-height: 56px !important; /* Minimum touch target size */
+  width: 100% !important;
+  background: white !important;
+  transition: all 0.2s !important;
+  font-size: 16px !important; /* Prevents zoom on iOS */
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+}
+
+@media (min-width: 640px) {
+  [data-stack-handler] input {
+    padding: 0.875rem 1.25rem !important;
+    min-height: 48px !important;
+    font-size: 0.9375rem !important;
+  }
+}
+
+[data-stack-handler] input:focus {
+  outline: none !important;
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Mobile-optimized buttons - larger touch targets */
+[data-stack-handler] button[type="submit"] {
+  background: #2563eb !important;
+  color: white !important;
+  border-radius: 0.75rem !important;
+  padding: 1rem 1.5rem !important;
+  min-height: 56px !important; /* Minimum touch target size */
+  width: 100% !important;
+  font-weight: 600 !important;
+  font-size: 18px !important; /* Larger text for mobile */
+  transition: all 0.2s !important;
+  border: none !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+  -webkit-tap-highlight-color: transparent !important;
+  touch-action: manipulation !important;
+}
+
+@media (min-width: 640px) {
+  [data-stack-handler] button[type="submit"] {
+    padding: 0.875rem 1.5rem !important;
+    min-height: 48px !important;
+    font-size: 0.9375rem !important;
+  }
+}
+
+[data-stack-handler] button[type="submit"]:hover {
+  background: #1d4ed8 !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+  transform: translateY(-1px) !important;
+}
+
+[data-stack-handler] button[type="submit"]:active {
+  background: #1e40af !important;
+  transform: scale(0.98) !important;
+}
+
+/* Mobile-optimized links - larger touch targets */
+[data-stack-handler] a {
+  color: #2563eb !important;
+  text-decoration: none !important;
+  font-weight: 500 !important;
+  padding: 0.5rem !important; /* Larger touch area */
+  display: inline-block !important;
+  min-height: 44px !important; /* Minimum touch target */
+  line-height: 1.5 !important;
+  -webkit-tap-highlight-color: rgba(37, 99, 235, 0.1) !important;
+  touch-action: manipulation !important;
+}
+
+[data-stack-handler] a:hover {
+  color: #1d4ed8 !important;
+  text-decoration: underline !important;
+}
+
+[data-stack-handler] a:active {
+  color: #1e40af !important;
+}
+
+/* Mobile-optimized labels */
+[data-stack-handler] label {
+  font-weight: 500 !important;
+  color: #374151 !important;
+  margin-bottom: 0.75rem !important; /* More spacing on mobile */
+  display: block !important;
+  font-size: 0.9375rem !important; /* Slightly larger for mobile */
+  line-height: 1.5 !important;
+}
+
+@media (min-width: 640px) {
+  [data-stack-handler] label {
+    margin-bottom: 0.5rem !important;
+    font-size: 0.875rem !important;
+  }
+}
+
+/* Better spacing between form elements on mobile */
+[data-stack-handler] form > * + * {
+  margin-top: 1.25rem !important;
+}
+
+@media (min-width: 640px) {
+  [data-stack-handler] form > * + * {
+    margin-top: 1rem !important;
+  }
+}
+
+/* Ensure proper spacing for form groups */
+[data-stack-handler] .form-group,
+[data-stack-handler] [class*="form-"],
+[data-stack-handler] div:has(> label) {
+  margin-bottom: 1.25rem !important;
+}
+
+@media (min-width: 640px) {
+  [data-stack-handler] .form-group,
+  [data-stack-handler] [class*="form-"],
+  [data-stack-handler] div:has(> label) {
+    margin-bottom: 1rem !important;
+  }
+}
+

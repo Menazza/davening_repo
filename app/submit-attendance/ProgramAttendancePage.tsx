@@ -8,6 +8,7 @@ import AttendanceForm from '@/components/AttendanceForm';
 import KollelAttendanceForm from '@/components/KollelAttendanceForm';
 import Navigation from '@/components/Navigation';
 import DatePicker from '@/components/DatePicker';
+import { formatProgramName } from '@/lib/format-program-name';
 
 interface User {
   id: string;
@@ -36,17 +37,35 @@ export default function ProgramAttendancePage({ user }: ProgramAttendancePagePro
   const stackUser = useUser();
 
   useEffect(() => {
-    loadPrograms();
+    // Check for date and program_id query parameters from URL
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const dateParam = params.get('date');
+      const programIdParam = params.get('program_id');
+      
+      if (dateParam) {
+        setSelectedDate(dateParam);
+      }
+      
+      loadPrograms(programIdParam || undefined);
+    }
   }, []);
 
-  const loadPrograms = async () => {
+  const loadPrograms = async (preselectProgramId?: string) => {
     try {
-      const response = await fetch('/api/programs');
+      // Only load programs the user is enrolled in
+      const response = await fetch('/api/programs?enrolled_only=true');
       if (response.ok) {
         const data = await response.json();
         setPrograms(data.programs || []);
         if (data.programs && data.programs.length > 0) {
-          setSelectedProgram(data.programs[0]);
+          // If program_id is in URL, select that program, otherwise select first
+          if (preselectProgramId) {
+            const preselected = data.programs.find((p: Program) => p.id === preselectProgramId);
+            setSelectedProgram(preselected || data.programs[0]);
+          } else {
+            setSelectedProgram(data.programs[0]);
+          }
         }
       }
     } catch (error) {
@@ -73,17 +92,18 @@ export default function ProgramAttendancePage({ user }: ProgramAttendancePagePro
     router.push('/dashboard');
   };
 
-  const isKollelProgram = selectedProgram?.name === 'Keter Eliyahu Morning Kollel';
+  const isKollelProgram = selectedProgram?.name === 'Keter Eliyahu Morning Kollel' || 
+                          selectedProgram?.name === 'Keter Eliyahu Full Morning Kollel';
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation user={user} onLogout={handleLogout} />
 
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Submit Attendance</h1>
-        <p className="text-gray-600 mb-6">Record your attendance for any of your programs</p>
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Submit Attendance</h1>
+        <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">Record your attendance for any of your programs</p>
 
-        <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
+        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 space-y-4 sm:space-y-6">
           <div>
             <DatePicker
               value={selectedDate}
@@ -93,13 +113,25 @@ export default function ProgramAttendancePage({ user }: ProgramAttendancePagePro
             />
           </div>
 
+
           {isLoadingPrograms ? (
             <div className="text-gray-600">Loading programs...</div>
+          ) : programs.length === 0 ? (
+            <div className="text-red-600">
+              <p className="font-semibold mb-2">No programs enrolled</p>
+              <p className="text-sm mb-3">You must enroll in at least one program in your profile before submitting attendance.</p>
+              <button
+                onClick={() => router.push('/profile')}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Go to Profile
+              </button>
+            </div>
           ) : (
             <>
               <div>
                 <label htmlFor="program" className="block text-sm font-medium text-gray-700 mb-2">
-                  Select Program
+                  Select Program *
                 </label>
                 <select
                   id="program"
@@ -108,36 +140,54 @@ export default function ProgramAttendancePage({ user }: ProgramAttendancePagePro
                     const program = programs.find(p => p.id === e.target.value);
                     setSelectedProgram(program || null);
                   }}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent touch-manipulation min-h-[44px]"
                 >
                   {programs.map((program) => (
                     <option key={program.id} value={program.id}>
-                      {program.name}
+                      {formatProgramName(program.name)}
                     </option>
                   ))}
                 </select>
                 {selectedProgram?.description && (
                   <p className="text-sm text-gray-500 mt-1">{selectedProgram.description}</p>
                 )}
+                {programs.length > 1 && (
+                  <p className="text-xs text-blue-600 mt-2">
+                    💡 Tip: You can submit attendance for multiple programs on the same day. After submitting, come back here and select another program.
+                  </p>
+                )}
               </div>
 
               {selectedProgram && (
-                <div>
-                  <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                    {selectedProgram.name}
+                <div className="border-t pt-4 sm:pt-6">
+                  <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
+                    {formatProgramName(selectedProgram.name)}
                   </h2>
                   {isKollelProgram ? (
-                    <KollelAttendanceForm
-                      date={selectedDate}
-                      programId={selectedProgram.id}
-                      onSuccess={handleSuccess}
-                    />
+                    <div>
+                      <p className="text-sm text-gray-600 mb-3 sm:mb-4">
+                        {selectedProgram.name === 'Keter Eliyahu Full Morning Kollel'
+                          ? 'Enter your arrival and departure times for the Full Morning Kollel session (8:45 AM - 12:00 PM).'
+                          : 'Enter your arrival and departure times for the Kollel session (8:30 AM - 10:30 AM).'}
+                      </p>
+                      <KollelAttendanceForm
+                        date={selectedDate}
+                        programId={selectedProgram.id}
+                        programName={selectedProgram.name}
+                        onSuccess={handleSuccess}
+                      />
+                    </div>
                   ) : (
-                    <AttendanceForm
-                      date={selectedDate}
-                      programId={selectedProgram.id}
-                      onSuccess={handleSuccess}
-                    />
+                    <div>
+                      <p className="text-sm text-gray-600 mb-3 sm:mb-4">
+                        Mark your attendance details for Rabbi Hendler's Minyan.
+                      </p>
+                      <AttendanceForm
+                        date={selectedDate}
+                        programId={selectedProgram.id}
+                        onSuccess={handleSuccess}
+                      />
+                    </div>
                   )}
                 </div>
               )}

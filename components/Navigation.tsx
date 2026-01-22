@@ -84,15 +84,16 @@ export default function Navigation({ user, onLogout }: NavigationProps) {
             {!user.is_admin && (
               <Link
                 href="/submit-attendance"
-                className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-md hover:bg-blue-700 transition-colors"
+                className="px-3 py-2 bg-blue-600 text-white text-xs sm:text-sm font-medium rounded-md hover:bg-blue-700 active:bg-blue-800 transition-colors touch-manipulation min-h-[44px] flex items-center"
               >
                 Submit
               </Link>
             )}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+              className="inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-50 active:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 touch-manipulation min-w-[44px] min-h-[44px]"
               aria-expanded="false"
+              aria-label="Toggle menu"
             >
               <span className="sr-only">Open main menu</span>
               {!mobileMenuOpen ? (
@@ -119,10 +120,10 @@ export default function Navigation({ user, onLogout }: NavigationProps) {
                     key={item.href}
                     href={item.href}
                     onClick={() => setMobileMenuOpen(false)}
-                    className={`block px-3 py-2 rounded-md text-base font-medium ${
+                    className={`block px-3 py-3 rounded-md text-base font-medium touch-manipulation min-h-[44px] flex items-center ${
                       isActive
                         ? 'bg-blue-100 text-blue-700'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50 active:bg-gray-100'
                     }`}
                   >
                     {item.label}
@@ -138,7 +139,7 @@ export default function Navigation({ user, onLogout }: NavigationProps) {
                     setMobileMenuOpen(false);
                     onLogout();
                   }}
-                  className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                  className="block w-full text-left px-3 py-3 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 active:bg-gray-100 touch-manipulation min-h-[44px]"
                 >
                   Logout
                 </button>

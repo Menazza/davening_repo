@@ -4,7 +4,7 @@ import { stackClientApp } from "../stack/client";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Tracker - Program Attendance System",
+  title: "Program Tracker - Attendance System",
   description: "Track your attendance across multiple programs and activities",
 };
 

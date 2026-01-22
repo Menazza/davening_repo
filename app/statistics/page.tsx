@@ -6,6 +6,7 @@ import { format, startOfYear, endOfYear, startOfMonth, endOfMonth, subMonths } f
 import { useUser } from '@stackframe/stack';
 import Navigation from '@/components/Navigation';
 import AttendanceCalendar from '@/components/AttendanceCalendar';
+import { formatProgramName } from '@/lib/format-program-name';
 
 interface User {
   id: string;
@@ -23,6 +24,19 @@ interface AttendanceStats {
   onTimeDays: number;
 }
 
+interface ProgramStats {
+  programId: string;
+  programName: string;
+  totalDays: number;
+  learningDays: number;
+  learningMinutes: number;
+  earlyDays: number;
+  lateDays: number;
+  onTimeDays: number;
+  kollelDays?: number;
+  totalKollelMinutes?: number;
+}
+
 export default function StatisticsPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
@@ -32,6 +46,8 @@ export default function StatisticsPage() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [monthStats, setMonthStats] = useState<AttendanceStats | null>(null);
   const [yearStats, setYearStats] = useState<AttendanceStats | null>(null);
+  const [monthStatsByProgram, setMonthStatsByProgram] = useState<ProgramStats[]>([]);
+  const [yearStatsByProgram, setYearStatsByProgram] = useState<ProgramStats[]>([]);
 
   useEffect(() => {
     checkAuth();
@@ -80,6 +96,7 @@ export default function StatisticsPage() {
         if (response.ok) {
           const data = await response.json();
           setMonthStats(data.stats);
+          setMonthStatsByProgram(data.statsByProgram || []);
         }
       } else {
         const yearStart = startOfYear(new Date(selectedYear, 0, 1));
@@ -91,6 +108,7 @@ export default function StatisticsPage() {
         if (response.ok) {
           const data = await response.json();
           setYearStats(data.stats);
+          setYearStatsByProgram(data.statsByProgram || []);
         }
       }
     } catch (error) {
@@ -133,37 +151,38 @@ export default function StatisticsPage() {
   }
 
   const stats = selectedPeriod === 'month' ? monthStats : yearStats;
+  const statsByProgram = selectedPeriod === 'month' ? monthStatsByProgram : yearStatsByProgram;
   const currentDate = new Date(selectedYear, selectedMonth, 1);
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation user={user} onLogout={handleLogout} />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Statistics & Analytics</h1>
-          <p className="text-gray-600">Track your attendance and learning progress</p>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Statistics & Analytics</h1>
+          <p className="text-sm sm:text-base text-gray-600">Track your attendance and learning progress</p>
         </div>
 
         {/* Period Selector */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="flex items-center gap-4 mb-4">
+        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
+          <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-4">
             <button
               onClick={() => setSelectedPeriod('month')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              className={`flex-1 sm:flex-none px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg text-sm sm:text-base font-medium transition-colors touch-manipulation min-h-[44px] ${
                 selectedPeriod === 'month'
                   ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300'
               }`}
             >
               This Month
             </button>
             <button
               onClick={() => setSelectedPeriod('year')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              className={`flex-1 sm:flex-none px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg text-sm sm:text-base font-medium transition-colors touch-manipulation min-h-[44px] ${
                 selectedPeriod === 'year'
                   ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300'
               }`}
             >
               This Year
@@ -171,11 +190,11 @@ export default function StatisticsPage() {
           </div>
 
           {selectedPeriod === 'month' && (
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
               <select
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="flex-1 px-3 sm:px-4 py-2.5 sm:py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 touch-manipulation min-h-[44px]"
               >
                 {Array.from({ length: 12 }, (_, i) => (
                   <option key={i} value={i}>
@@ -186,7 +205,7 @@ export default function StatisticsPage() {
               <select
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="flex-1 sm:flex-none px-3 sm:px-4 py-2.5 sm:py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 touch-manipulation min-h-[44px]"
               >
                 {Array.from({ length: 3 }, (_, i) => {
                   const year = new Date().getFullYear() - 1 + i;
@@ -205,7 +224,7 @@ export default function StatisticsPage() {
               <select
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full sm:w-auto px-3 sm:px-4 py-2.5 sm:py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 touch-manipulation min-h-[44px]"
               >
                 {Array.from({ length: 3 }, (_, i) => {
                   const year = new Date().getFullYear() - 1 + i;
@@ -220,49 +239,92 @@ export default function StatisticsPage() {
           )}
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-6 mb-6">
-          {/* Statistics Cards */}
-          <div className="lg:col-span-2 space-y-6">
-            {stats && (
-              <>
-                <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl shadow-lg p-6 text-white">
-                  <h2 className="text-lg font-semibold mb-4">Learning Statistics</h2>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-white/10 rounded-lg p-4 backdrop-blur-sm">
-                      <p className="text-sm opacity-90 mb-1">Learning Days</p>
-                      <p className="text-3xl font-bold">{stats.learningDays}</p>
-                    </div>
-                    <div className="bg-white/10 rounded-lg p-4 backdrop-blur-sm">
-                      <p className="text-sm opacity-90 mb-1">Total Learning Time</p>
-                      <p className="text-3xl font-bold">
-                        {Math.floor(stats.learningMinutes / 60)}h {stats.learningMinutes % 60}m
-                      </p>
-                    </div>
-                  </div>
-                </div>
+        <div className="grid lg:grid-cols-3 gap-4 sm:gap-6 mb-4 sm:mb-6">
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+            {/* Stats by Program - Each program gets its own section */}
+            {statsByProgram && statsByProgram.length > 0 ? (
+              <div className="space-y-6">
+                {statsByProgram.map((programStat) => (
+                  <div key={programStat.programId} className="bg-white rounded-lg shadow-md p-4 sm:p-6 border-l-4 border-blue-500">
+                    <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6">{formatProgramName(programStat.programName)}</h2>
+                    
+                    {programStat.kollelDays !== undefined ? (
+                      // Kollel program stats
+                      <div className="space-y-3 sm:space-y-4">
+                        <div className="bg-gradient-to-r from-purple-600 to-purple-700 rounded-xl shadow-lg p-4 sm:p-6 text-white mb-3 sm:mb-4">
+                          <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Kollel Statistics</h3>
+                          <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                            <div className="bg-white/10 rounded-lg p-2 sm:p-4 backdrop-blur-sm">
+                              <p className="text-xs sm:text-sm opacity-90 mb-1">Total Days</p>
+                              <p className="text-xl sm:text-3xl font-bold">{programStat.kollelDays}</p>
+                            </div>
+                            <div className="bg-white/10 rounded-lg p-2 sm:p-4 backdrop-blur-sm">
+                              <p className="text-xs sm:text-sm opacity-90 mb-1">Total Time</p>
+                              <p className="text-lg sm:text-2xl font-bold">
+                                {Math.floor((programStat.totalKollelMinutes || 0) / 60)}h {(programStat.totalKollelMinutes || 0) % 60}m
+                              </p>
+                            </div>
+                            <div className="bg-white/10 rounded-lg p-2 sm:p-4 backdrop-blur-sm">
+                              <p className="text-xs sm:text-sm opacity-90 mb-1">Avg. Session</p>
+                              <p className="text-lg sm:text-2xl font-bold">
+                                {programStat.kollelDays > 0 
+                                  ? `${Math.floor((programStat.totalKollelMinutes || 0) / programStat.kollelDays)}m`
+                                  : '0m'}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      // Handler program stats
+                      <div className="space-y-3 sm:space-y-4">
+                        <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl shadow-lg p-4 sm:p-6 text-white mb-3 sm:mb-4">
+                          <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Learning Statistics</h3>
+                          <div className="grid grid-cols-2 gap-2 sm:gap-4">
+                            <div className="bg-white/10 rounded-lg p-2 sm:p-4 backdrop-blur-sm">
+                              <p className="text-xs sm:text-sm opacity-90 mb-1">Learning Days</p>
+                              <p className="text-xl sm:text-3xl font-bold">{programStat.learningDays}</p>
+                            </div>
+                            <div className="bg-white/10 rounded-lg p-2 sm:p-4 backdrop-blur-sm">
+                              <p className="text-xs sm:text-sm opacity-90 mb-1">Total Learning Time</p>
+                              <p className="text-lg sm:text-3xl font-bold">
+                                {Math.floor(programStat.learningMinutes / 60)}h {programStat.learningMinutes % 60}m
+                              </p>
+                            </div>
+                          </div>
+                        </div>
 
-                <div className="bg-white rounded-lg shadow-md p-6">
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Attendance Breakdown</h2>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-gray-900">{stats.totalDays}</p>
-                      <p className="text-sm text-gray-600">Total Days</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-green-600">{stats.onTimeDays}</p>
-                      <p className="text-sm text-gray-600">On Time</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-blue-600">{stats.earlyDays}</p>
-                      <p className="text-sm text-gray-600">Early</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-orange-600">{stats.lateDays}</p>
-                      <p className="text-sm text-gray-600">Late</p>
-                    </div>
+                        <div className="bg-gray-50 rounded-lg p-4 sm:p-6">
+                          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Attendance Breakdown</h3>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                            <div className="text-center">
+                              <p className="text-xl sm:text-2xl font-bold text-gray-900">{programStat.totalDays}</p>
+                              <p className="text-xs sm:text-sm text-gray-600">Total Days</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-xl sm:text-2xl font-bold text-green-600">{programStat.onTimeDays}</p>
+                              <p className="text-xs sm:text-sm text-gray-600">On Time</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-xl sm:text-2xl font-bold text-blue-600">{programStat.earlyDays}</p>
+                              <p className="text-xs sm:text-sm text-gray-600">Early</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-xl sm:text-2xl font-bold text-orange-600">{programStat.lateDays}</p>
+                              <p className="text-xs sm:text-sm text-gray-600">Late</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              </>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 text-center">
+                <p className="text-sm sm:text-base text-gray-600">No statistics available for the selected period.</p>
+              </div>
             )}
           </div>
 
@@ -272,40 +334,6 @@ export default function StatisticsPage() {
           </div>
         </div>
 
-        {/* Additional Stats */}
-        {stats && (
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Detailed Breakdown</h2>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Total Attendance Days</span>
-                <span className="font-semibold text-gray-900">{stats.totalDays}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Days with Learning (5 min early)</span>
-                <span className="font-semibold text-blue-600">{stats.learningDays}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Total Learning Time</span>
-                <span className="font-semibold text-blue-600">
-                  {Math.floor(stats.learningMinutes / 60)} hours {stats.learningMinutes % 60} minutes
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Days Arrived Early</span>
-                <span className="font-semibold text-green-600">{stats.earlyDays}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Days Arrived Late</span>
-                <span className="font-semibold text-orange-600">{stats.lateDays}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Days On Time</span>
-                <span className="font-semibold text-gray-900">{stats.onTimeDays}</span>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

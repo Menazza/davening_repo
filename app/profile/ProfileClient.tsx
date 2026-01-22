@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@stackframe/stack';
 import Navigation from '@/components/Navigation';
+import { formatProgramName } from '@/lib/format-program-name';
 
 interface User {
   id: string;
@@ -21,10 +22,20 @@ interface ProfileClientProps {
   user: User;
 }
 
+interface Program {
+  id: string;
+  name: string;
+  description: string | null;
+}
+
 export default function ProfileClient({ user: initialUser }: ProfileClientProps) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
+  const [isSavingPrograms, setIsSavingPrograms] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [allPrograms, setAllPrograms] = useState<Program[]>([]);
+  const [userProgramIds, setUserProgramIds] = useState<string[]>([]);
+  const [isLoadingPrograms, setIsLoadingPrograms] = useState(true);
   // Determine if existing bank_name is in our list or is "Other"
   const bankOptions = [
     'Standard Bank',
@@ -59,6 +70,78 @@ export default function ProfileClient({ user: initialUser }: ProfileClientProps)
   });
   const [selectedBank, setSelectedBank] = useState(initialSelectedBank);
   const [bankNameOther, setBankNameOther] = useState(!isBankInList && existingBankName ? existingBankName : '');
+
+  useEffect(() => {
+    loadPrograms();
+    
+    // Check if user was redirected here to enroll
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('enroll') === 'true') {
+        setMessage({ 
+          type: 'error', 
+          text: 'Please enroll in at least one program before accessing other features.' 
+        });
+      }
+    }
+  }, []);
+
+  const loadPrograms = async () => {
+    try {
+      setIsLoadingPrograms(true);
+      // Load all available programs
+      const programsResponse = await fetch('/api/programs');
+      if (programsResponse.ok) {
+        const programsData = await programsResponse.json();
+        setAllPrograms(programsData.programs || []);
+      }
+
+      // Load user's enrolled programs
+      const userProgramsResponse = await fetch('/api/user-programs');
+      if (userProgramsResponse.ok) {
+        const userProgramsData = await userProgramsResponse.json();
+        setUserProgramIds((userProgramsData.programs || []).map((p: any) => p.id));
+      }
+    } catch (error) {
+      console.error('Error loading programs:', error);
+    } finally {
+      setIsLoadingPrograms(false);
+    }
+  };
+
+  const handleProgramToggle = (programId: string) => {
+    setUserProgramIds(prev => 
+      prev.includes(programId)
+        ? prev.filter(id => id !== programId)
+        : [...prev, programId]
+    );
+  };
+
+  const handleSavePrograms = async () => {
+    setIsSavingPrograms(true);
+    setMessage(null);
+
+    try {
+      const response = await fetch('/api/user-programs', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ programIds: userProgramIds }),
+      });
+
+      if (response.ok) {
+        setMessage({ type: 'success', text: 'Program enrollments updated successfully!' });
+        // Reload to get updated program list
+        await loadPrograms();
+      } else {
+        const data = await response.json();
+        setMessage({ type: 'error', text: data.error || 'Failed to update program enrollments' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'An error occurred while updating program enrollments' });
+    } finally {
+      setIsSavingPrograms(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,11 +191,77 @@ export default function ProfileClient({ user: initialUser }: ProfileClientProps)
     <div className="min-h-screen bg-gray-50">
       <Navigation user={initialUser} onLogout={handleLogout} />
 
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Profile Settings</h2>
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Profile Settings</h2>
 
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
+        {message && (
+          <div
+            className={`mb-6 p-4 rounded-md ${
+              message.type === 'success'
+                ? 'bg-green-50 text-green-800 border border-green-200'
+                : 'bg-red-50 text-red-800 border border-red-200'
+            }`}
+          >
+            {message.text}
+          </div>
+        )}
+
+        {/* Program Enrollment Section */}
+        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Program Enrollment</h3>
+          <p className="text-sm text-gray-600 mb-3 sm:mb-4">
+            Select the programs you are part of. You can only submit attendance for programs you're enrolled in.
+          </p>
+          
+          {isLoadingPrograms ? (
+            <div className="text-gray-600">Loading programs...</div>
+          ) : (
+            <>
+              <div className="space-y-2 sm:space-y-3 mb-3 sm:mb-4">
+                {allPrograms.map((program) => (
+                  <label
+                    key={program.id}
+                    className="flex items-start space-x-3 p-3 sm:p-3 border border-gray-200 rounded-lg hover:bg-gray-50 active:bg-gray-100 cursor-pointer touch-manipulation min-h-[48px]"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={userProgramIds.includes(program.id)}
+                      onChange={() => handleProgramToggle(program.id)}
+                      className="mt-1 w-5 h-5 sm:w-4 sm:h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 touch-manipulation"
+                    />
+                    <div className="flex-1">
+                      <div className="font-medium text-gray-900">{formatProgramName(program.name)}</div>
+                      {program.description && (
+                        <div className="text-sm text-gray-500">{program.description}</div>
+                      )}
+                    </div>
+                  </label>
+                ))}
+              </div>
+              
+              {userProgramIds.length === 0 && (
+                <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm text-yellow-800">
+                    ⚠️ You must enroll in at least one program to submit attendance.
+                  </p>
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={handleSavePrograms}
+                disabled={isSavingPrograms}
+                className="w-full bg-blue-600 text-white py-3 sm:py-2 px-4 text-sm sm:text-base rounded-md hover:bg-blue-700 active:bg-blue-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors touch-manipulation min-h-[48px] font-semibold"
+              >
+                {isSavingPrograms ? 'Saving...' : 'Save Program Enrollments'}
+              </button>
+            </>
+          )}
+        </div>
+
+        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Personal Information</h3>
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
             <div>
               <label htmlFor="full_name" className="block text-sm font-medium text-gray-700 mb-1">
                 Full Name
@@ -122,7 +271,7 @@ export default function ProfileClient({ user: initialUser }: ProfileClientProps)
                 id="full_name"
                 value={formData.full_name}
                 onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 sm:px-3 py-2.5 sm:py-2 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation min-h-[44px]"
               />
             </div>
 
@@ -135,7 +284,7 @@ export default function ProfileClient({ user: initialUser }: ProfileClientProps)
                 id="hebrew_name"
                 value={formData.hebrew_name}
                 onChange={(e) => setFormData({ ...formData, hebrew_name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 sm:px-3 py-2.5 sm:py-2 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation min-h-[44px]"
               />
             </div>
 
@@ -156,7 +305,7 @@ export default function ProfileClient({ user: initialUser }: ProfileClientProps)
                     setBankNameOther('');
                   }
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 sm:px-3 py-2.5 sm:py-2 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation min-h-[44px]"
               >
                 <option value="">Select bank</option>
                 <option value="Standard Bank">Standard Bank</option>
@@ -194,7 +343,7 @@ export default function ProfileClient({ user: initialUser }: ProfileClientProps)
                     setBankNameOther(value);
                     setFormData({ ...formData, bank_name: value });
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 sm:px-3 py-2.5 sm:py-2 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation min-h-[44px]"
                 />
               </div>
             )}
@@ -208,7 +357,7 @@ export default function ProfileClient({ user: initialUser }: ProfileClientProps)
                 id="account_number"
                 value={formData.account_number}
                 onChange={(e) => setFormData({ ...formData, account_number: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 sm:px-3 py-2.5 sm:py-2 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation min-h-[44px]"
               />
             </div>
 
@@ -221,7 +370,7 @@ export default function ProfileClient({ user: initialUser }: ProfileClientProps)
                 id="branch_code"
                 value={formData.branch_code}
                 onChange={(e) => setFormData({ ...formData, branch_code: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 sm:px-3 py-2.5 sm:py-2 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation min-h-[44px]"
               />
             </div>
 
@@ -233,7 +382,7 @@ export default function ProfileClient({ user: initialUser }: ProfileClientProps)
                 id="account_type"
                 value={formData.account_type}
                 onChange={(e) => setFormData({ ...formData, account_type: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 sm:px-3 py-2.5 sm:py-2 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation min-h-[44px]"
               >
                 <option value="">Select account type</option>
                 <option value="cheque">Cheque</option>
@@ -242,22 +391,11 @@ export default function ProfileClient({ user: initialUser }: ProfileClientProps)
               </select>
             </div>
 
-            {message && (
-              <div
-                className={`p-4 rounded-md ${
-                  message.type === 'success'
-                    ? 'bg-green-50 text-green-800'
-                    : 'bg-red-50 text-red-800'
-                }`}
-              >
-                {message.text}
-              </div>
-            )}
 
             <button
               type="submit"
               disabled={isSaving}
-              className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              className="w-full bg-blue-600 text-white py-3 sm:py-2 px-4 text-sm sm:text-base rounded-md hover:bg-blue-700 active:bg-blue-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors touch-manipulation min-h-[48px] font-semibold"
             >
               {isSaving ? 'Saving...' : 'Save Profile'}
             </button>

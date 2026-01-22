@@ -1,12 +1,11 @@
 import { redirect } from 'next/navigation';
 import { getAuthenticatedUser } from '@/lib/server-auth';
-import { getUserEarnings } from '@/lib/attendance';
 import { getActiveAnnouncements } from '@/lib/admin';
+import { getUserProgramsWithDetails } from '@/lib/user-programs';
 import DashboardClient from './DashboardClient';
 
 export default async function DashboardPage() {
   let user;
-  let earnings = null;
   let announcements = [];
 
   try {
@@ -18,22 +17,20 @@ export default async function DashboardPage() {
       redirect('/admin');
     }
     
-    // Fetch earnings and announcements in parallel
-    [earnings, announcements] = await Promise.all([
-      getUserEarnings(user.id).catch(() => null),
-      getActiveAnnouncements().catch(() => []),
-    ]);
+    // Check if user has enrolled in any programs
+    const userPrograms = await getUserProgramsWithDetails(user.id).catch(() => []);
+    
+    // If user has no programs, redirect to profile to enroll
+    if (userPrograms.length === 0) {
+      redirect('/profile?enroll=true');
+    }
+    
+    // Fetch announcements
+    announcements = await getActiveAnnouncements().catch(() => []);
   } catch (error) {
     // If not authenticated, redirect to sign-in
     redirect('/handler/sign-in');
   }
-
-  // Format earnings for client
-  const earningsData = earnings ? {
-    totalEarned: earnings.totalEarned,
-    totalPaid: earnings.totalPaid,
-    totalOwed: earnings.totalOwed,
-  } : null;
 
   // Format announcements for client
   const announcementsData = announcements.map(a => ({
@@ -43,5 +40,9 @@ export default async function DashboardPage() {
     created_at: a.created_at,
   }));
 
-  return <DashboardClient user={user} earnings={earningsData} announcements={announcementsData} />;
+  // Check if user has Handler program enrolled
+  const userPrograms = await getUserProgramsWithDetails(user.id).catch(() => []);
+  const hasHandlerProgram = userPrograms.some((p: any) => p.name === 'Handler');
+
+  return <DashboardClient user={user} announcements={announcementsData} hasHandlerProgram={hasHandlerProgram} />;
 }

@@ -16,13 +16,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Get Handler attendance
     const attendance = await sql`
       SELECT 
         date::text as date,
         came_early,
         learned_early,
         came_late,
-        minutes_late
+        minutes_late,
+        program_id,
+        'handler' as type
       FROM attendance
       WHERE user_id = ${user.id}
         AND date >= ${startDate}::date
@@ -30,11 +33,32 @@ export async function GET(request: NextRequest) {
       ORDER BY date ASC
     `;
 
-    // Format dates as YYYY-MM-DD strings
-    const formattedAttendance = attendance.map((record: any) => ({
-      ...record,
-      date: record.date ? record.date.split('T')[0] : record.date,
-    }));
+    // Get Kollel attendance
+    const kollelAttendance = await sql`
+      SELECT 
+        date::text as date,
+        program_id,
+        arrival_time,
+        departure_time,
+        'kollel' as type
+      FROM kollel_attendance
+      WHERE user_id = ${user.id}
+        AND date >= ${startDate}::date
+        AND date <= ${endDate}::date
+      ORDER BY date ASC
+    `;
+
+    // Format dates as YYYY-MM-DD strings and combine both types
+    const formattedAttendance = [
+      ...attendance.map((record: any) => ({
+        ...record,
+        date: record.date ? record.date.split('T')[0] : record.date,
+      })),
+      ...kollelAttendance.map((record: any) => ({
+        ...record,
+        date: record.date ? record.date.split('T')[0] : record.date,
+      })),
+    ];
 
     return NextResponse.json({ attendance: formattedAttendance });
   } catch (error: any) {

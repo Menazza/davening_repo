@@ -1,5 +1,6 @@
 import { sql } from './db';
 import { format } from 'date-fns';
+import { getProgramById } from './programs';
 
 export interface KollelAttendanceRecord {
   id: string;
@@ -12,26 +13,40 @@ export interface KollelAttendanceRecord {
   updated_at: string;
 }
 
-const KOLLEL_START_TIME = '08:30:00';
-const KOLLEL_END_TIME = '10:30:00';
+/**
+ * Get time range for a Kollel program
+ */
+export function getKollelTimeRange(programName: string): { start: string; end: string } {
+  if (programName === 'Keter Eliyahu Full Morning Kollel') {
+    return { start: '08:45:00', end: '12:00:00' };
+  }
+  // Default to Morning Kollel times
+  return { start: '08:30:00', end: '10:30:00' };
+}
 
 /**
- * Validates that arrival and departure times are within the kollel hours
+ * Validates that arrival and departure times are within the kollel hours for a specific program
  */
-export function validateKollelTimes(arrivalTime: string, departureTime: string): {
+export function validateKollelTimes(
+  arrivalTime: string,
+  departureTime: string,
+  programName: string
+): {
   valid: boolean;
   error?: string;
 } {
+  const { start, end } = getKollelTimeRange(programName);
+  
   // Parse times (format: HH:MM or HH:MM:SS)
   const arrival = arrivalTime.length === 5 ? arrivalTime + ':00' : arrivalTime;
   const departure = departureTime.length === 5 ? departureTime + ':00' : departureTime;
 
-  if (arrival < KOLLEL_START_TIME) {
-    return { valid: false, error: `Arrival time cannot be before ${KOLLEL_START_TIME.slice(0, 5)}` };
+  if (arrival < start) {
+    return { valid: false, error: `Arrival time cannot be before ${start.slice(0, 5)}` };
   }
 
-  if (departure > KOLLEL_END_TIME) {
-    return { valid: false, error: `Departure time cannot be after ${KOLLEL_END_TIME.slice(0, 5)}` };
+  if (departure > end) {
+    return { valid: false, error: `Departure time cannot be after ${end.slice(0, 5)}` };
   }
 
   if (arrival >= departure) {
@@ -51,12 +66,20 @@ export async function submitKollelAttendance(
   data: {
     arrival_time: string;
     departure_time: string;
-  }
+  },
+  programName?: string
 ): Promise<KollelAttendanceRecord> {
   const dateStr = format(date, 'yyyy-MM-dd');
 
+  // Get program name if not provided
+  let programNameToUse = programName;
+  if (!programNameToUse) {
+    const program = await getProgramById(programId);
+    programNameToUse = program?.name || 'Keter Eliyahu Morning Kollel';
+  }
+
   // Validate times
-  const validation = validateKollelTimes(data.arrival_time, data.departure_time);
+  const validation = validateKollelTimes(data.arrival_time, data.departure_time, programNameToUse);
   if (!validation.valid) {
     throw new Error(validation.error || 'Invalid times');
   }

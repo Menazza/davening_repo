@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { submitKollelAttendance, getKollelAttendanceByDate, deleteKollelAttendance } from '@/lib/kollel';
 import { getAuthenticatedUser } from '@/lib/server-auth';
+import { getProgramById } from '@/lib/programs';
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,6 +17,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get program name for validation
+    const program = await getProgramById(program_id);
+    const programName = program?.name;
+
     const result = await submitKollelAttendance(
       user.id,
       program_id,
@@ -23,7 +28,8 @@ export async function POST(request: NextRequest) {
       {
         arrival_time,
         departure_time,
-      }
+      },
+      programName
     );
 
     return NextResponse.json({ success: true, attendance: result });

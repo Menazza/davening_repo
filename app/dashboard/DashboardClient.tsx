@@ -16,12 +16,6 @@ interface User {
   is_admin: boolean;
 }
 
-interface Earnings {
-  totalEarned: number;
-  totalPaid: number;
-  totalOwed: number;
-}
-
 interface Announcement {
   id: string;
   title: string;
@@ -31,11 +25,11 @@ interface Announcement {
 
 interface DashboardClientProps {
   user: User;
-  earnings: Earnings | null;
   announcements: Announcement[];
+  hasHandlerProgram: boolean;
 }
 
-export default function DashboardClient({ user, earnings, announcements }: DashboardClientProps) {
+export default function DashboardClient({ user, announcements, hasHandlerProgram }: DashboardClientProps) {
   const router = useRouter();
   const stackUser = useUser();
 
@@ -60,39 +54,20 @@ export default function DashboardClient({ user, earnings, announcements }: Dashb
     <div className="min-h-screen bg-gray-50">
       <Navigation user={user} onLogout={handleLogout} />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome, {user.full_name || user.email}!</h1>
-        <p className="text-gray-600 mb-8">Track your attendance across all your programs</p>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Welcome, {user.full_name || user.email}!</h1>
+        <p className="text-sm sm:text-base text-gray-600 mb-6 sm:mb-8">Track your attendance across all your programs</p>
 
-        {earnings && (
-          <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg shadow-lg p-6 mb-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <p className="text-blue-100 text-sm mb-1">Total Earned</p>
-                <p className="text-3xl font-bold">R{earnings.totalEarned.toFixed(2)}</p>
-              </div>
-              <div>
-                <p className="text-blue-100 text-sm mb-1">Total Paid</p>
-                <p className="text-3xl font-bold">R{earnings.totalPaid.toFixed(2)}</p>
-              </div>
-              <div>
-                <p className="text-blue-100 text-sm mb-1">Total Owed</p>
-                <p className="text-3xl font-bold">R{earnings.totalOwed.toFixed(2)}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className="grid lg:grid-cols-3 gap-6 mb-8">
-          <div className="lg:col-span-2 space-y-6">
+        <div className="grid lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
             {announcements.length > 0 && (
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Announcements</h2>
-                <div className="space-y-4">
+              <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">Announcements</h2>
+                <div className="space-y-3 sm:space-y-4">
                   {announcements.map((announcement) => (
-                    <div key={announcement.id} className="border-l-4 border-blue-500 pl-4">
-                      <h3 className="font-semibold text-gray-900 mb-1">{announcement.title}</h3>
-                      <p className="text-gray-700 text-sm whitespace-pre-wrap mb-2">
+                    <div key={announcement.id} className="border-l-4 border-blue-500 pl-3 sm:pl-4">
+                      <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-1">{announcement.title}</h3>
+                      <p className="text-gray-700 text-xs sm:text-sm whitespace-pre-wrap mb-2">
                         {announcement.message}
                       </p>
                       <p className="text-gray-500 text-xs">
@@ -106,43 +81,42 @@ export default function DashboardClient({ user, earnings, announcements }: Dashb
 
             <AttendanceCalendar />
 
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Submit Attendance</h2>
-              <p className="text-gray-600 mb-4">
+            <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">Submit Attendance</h2>
+              <p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4">
                 Submit attendance for any of your programs. You can track multiple programs each day.
               </p>
-              <Link
-                href="/submit-attendance"
-                className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Submit Attendance
-              </Link>
+              <div className="space-y-2 sm:space-y-3">
+                <Link
+                  href="/submit-attendance"
+                  className="inline-flex items-center w-full justify-center px-4 sm:px-6 py-3 sm:py-3.5 bg-blue-600 text-white text-sm sm:text-base font-semibold rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-colors touch-manipulation min-h-[48px]"
+                >
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Submit Attendance
+                </Link>
+                <p className="text-xs text-gray-500 text-center px-2">
+                  Select a program to log your attendance
+                </p>
+              </div>
             </div>
           </div>
 
-          <div className="lg:col-span-1">
-            <DaveningTimes />
-            <div className="bg-white rounded-lg shadow-md p-6 mt-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Links</h3>
+          <div className="lg:col-span-1 space-y-4 sm:space-y-6">
+            {hasHandlerProgram && <DaveningTimes />}
+            <div className={`bg-white rounded-lg shadow-md p-4 sm:p-6 ${hasHandlerProgram ? 'mt-4 sm:mt-6' : ''}`}>
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Quick Links</h3>
               <div className="space-y-2">
                 <Link
                   href="/profile"
-                  className="block px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
+                  className="block px-3 sm:px-4 py-2.5 sm:py-2 text-sm sm:text-base text-gray-700 hover:bg-gray-50 active:bg-gray-100 rounded-md transition-colors touch-manipulation min-h-[44px] flex items-center"
                 >
                   View Profile
                 </Link>
                 <Link
-                  href="/earnings"
-                  className="block px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
-                >
-                  Earnings History
-                </Link>
-                <Link
                   href="/statistics"
-                  className="block px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
+                  className="block px-3 sm:px-4 py-2.5 sm:py-2 text-sm sm:text-base text-gray-700 hover:bg-gray-50 active:bg-gray-100 rounded-md transition-colors touch-manipulation min-h-[44px] flex items-center"
                 >
                   Statistics
                 </Link>

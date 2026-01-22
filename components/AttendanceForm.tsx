@@ -105,9 +105,9 @@ export default function AttendanceForm({ date, programId, onSuccess }: Attendanc
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
       <div>
-        <label className="flex items-center space-x-3">
+        <label className="flex items-center space-x-3 cursor-pointer touch-manipulation min-h-[44px]">
           <input
             type="checkbox"
             checked={formData.came_early}
@@ -123,36 +123,36 @@ export default function AttendanceForm({ date, programId, onSuccess }: Attendanc
                 learned_early: cameEarly ? formData.learned_early : false,
               });
             }}
-            className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            className="w-5 h-5 sm:w-5 sm:h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 touch-manipulation"
           />
-          <span className="text-gray-700 font-medium">
+          <span className="text-sm sm:text-base text-gray-700 font-medium">
             Did you come 5 minutes early?
           </span>
         </label>
       </div>
 
       <div>
-        <label className="flex items-center space-x-3">
+        <label className="flex items-center space-x-3 cursor-pointer touch-manipulation min-h-[44px]">
           <input
             type="checkbox"
             checked={formData.learned_early}
             onChange={(e) => setFormData({ ...formData, learned_early: e.target.checked })}
             disabled={!formData.came_early}
-            className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-5 h-5 sm:w-5 sm:h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
           />
-          <span className="text-gray-700 font-medium">
+          <span className="text-sm sm:text-base text-gray-700 font-medium">
             Did you learn in those 5 minutes?
           </span>
         </label>
         {!formData.came_early && (
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-xs sm:text-sm text-gray-500 mt-1 ml-8">
             (Only applicable if you came 5 minutes early)
           </p>
         )}
       </div>
 
       <div>
-        <label className="flex items-center space-x-3">
+        <label className="flex items-center space-x-3 cursor-pointer touch-manipulation min-h-[44px]">
           <input
             type="checkbox"
             checked={formData.came_late}
@@ -168,14 +168,14 @@ export default function AttendanceForm({ date, programId, onSuccess }: Attendanc
               });
             }}
             disabled={formData.came_early}
-            className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-5 h-5 sm:w-5 sm:h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
           />
-          <span className={`text-gray-700 font-medium ${formData.came_early ? 'text-gray-400' : ''}`}>
+          <span className={`text-sm sm:text-base text-gray-700 font-medium ${formData.came_early ? 'text-gray-400' : ''}`}>
             Did you come late to shul?
           </span>
         </label>
         {formData.came_early && (
-          <p className="text-sm text-gray-500 mt-1 ml-8">
+          <p className="text-xs sm:text-sm text-gray-500 mt-1 ml-8">
             (Not applicable if you came early)
           </p>
         )}
@@ -196,7 +196,7 @@ export default function AttendanceForm({ date, programId, onSuccess }: Attendanc
               })
             }
             required
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-3 sm:px-4 py-2.5 sm:py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent touch-manipulation min-h-[44px]"
           >
             <option value="">Select minutes late</option>
             {lateMinutesOptions.map((minutes) => (
@@ -223,7 +223,7 @@ export default function AttendanceForm({ date, programId, onSuccess }: Attendanc
       <button
         type="submit"
         disabled={isSubmitting}
-        className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full bg-blue-600 text-white py-3 sm:py-2 px-4 text-sm sm:text-base rounded-lg font-semibold hover:bg-blue-700 active:bg-blue-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation min-h-[48px]"
       >
         {isSubmitting ? 'Submitting...' : 'Submit Attendance'}
       </button>

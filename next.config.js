@@ -19,13 +19,12 @@ const nextConfig = {
     // Optimize file watching in development
     if (dev) {
       config.watchOptions = {
-        poll: false,
+        poll: 1000, // Enable polling for OneDrive compatibility (check every 1 second)
         aggregateTimeout: 300, // Delay rebuild until 300ms after last change
         ignored: [
           '**/node_modules/**',
           '**/.next/**',
           '**/.git/**',
-          '**/OneDrive/**', // Ignore OneDrive sync folder changes
         ],
       };
       

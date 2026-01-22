@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 interface KollelAttendanceFormProps {
   date: string;
   programId: string;
+  programName?: string;
   onSuccess?: () => void;
 }
 
@@ -14,10 +15,19 @@ interface KollelAttendanceData {
   departure_time: string;
 }
 
-export default function KollelAttendanceForm({ date, programId, onSuccess }: KollelAttendanceFormProps) {
+export default function KollelAttendanceForm({ date, programId, programName, onSuccess }: KollelAttendanceFormProps) {
+  // Determine time range based on program name
+  const isFullMorningKollel = programName === 'Keter Eliyahu Full Morning Kollel';
+  const defaultArrival = isFullMorningKollel ? '08:45' : '08:30';
+  const defaultDeparture = isFullMorningKollel ? '12:00' : '10:30';
+  const minTime = isFullMorningKollel ? '08:45' : '08:30';
+  const maxTime = isFullMorningKollel ? '12:00' : '10:30';
+  const earliestText = isFullMorningKollel ? '8:45 AM' : '8:30 AM';
+  const latestText = isFullMorningKollel ? '12:00 PM' : '10:30 AM';
+
   const [formData, setFormData] = useState<KollelAttendanceData>({
-    arrival_time: '08:30',
-    departure_time: '10:30',
+    arrival_time: defaultArrival,
+    departure_time: defaultDeparture,
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -43,8 +53,8 @@ export default function KollelAttendanceForm({ date, programId, onSuccess }: Kol
           });
         } else {
           setFormData({
-            arrival_time: '08:30',
-            departure_time: '10:30',
+            arrival_time: defaultArrival,
+            departure_time: defaultDeparture,
           });
         }
       }
@@ -60,15 +70,15 @@ export default function KollelAttendanceForm({ date, programId, onSuccess }: Kol
     setIsSubmitting(true);
     setMessage(null);
 
-    // Validate times
-    if (formData.arrival_time < '08:30') {
-      setMessage({ type: 'error', text: 'Arrival time cannot be before 8:30 AM' });
+    // Validate times based on program
+    if (formData.arrival_time < minTime) {
+      setMessage({ type: 'error', text: `Arrival time cannot be before ${earliestText}` });
       setIsSubmitting(false);
       return;
     }
 
-    if (formData.departure_time > '10:30') {
-      setMessage({ type: 'error', text: 'Departure time cannot be after 10:30 AM' });
+    if (formData.departure_time > maxTime) {
+      setMessage({ type: 'error', text: `Departure time cannot be after ${latestText}` });
       setIsSubmitting(false);
       return;
     }
@@ -114,7 +124,7 @@ export default function KollelAttendanceForm({ date, programId, onSuccess }: Kol
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
       <div>
         <label htmlFor="arrival_time" className="block text-sm font-medium text-gray-700 mb-2">
           Arrival Time
@@ -124,13 +134,13 @@ export default function KollelAttendanceForm({ date, programId, onSuccess }: Kol
           id="arrival_time"
           value={formData.arrival_time}
           onChange={(e) => setFormData({ ...formData, arrival_time: e.target.value })}
-          min="08:30"
-          max="10:30"
+          min={minTime}
+          max={maxTime}
           required
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full px-3 sm:px-4 py-2.5 sm:py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent touch-manipulation min-h-[44px]"
         />
         <p className="text-xs text-gray-500 mt-1">
-          Earliest: 8:30 AM
+          Earliest: {earliestText}
         </p>
       </div>
 
@@ -143,13 +153,13 @@ export default function KollelAttendanceForm({ date, programId, onSuccess }: Kol
           id="departure_time"
           value={formData.departure_time}
           onChange={(e) => setFormData({ ...formData, departure_time: e.target.value })}
-          min="08:30"
-          max="10:30"
+          min={minTime}
+          max={maxTime}
           required
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full px-3 sm:px-4 py-2.5 sm:py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent touch-manipulation min-h-[44px]"
         />
         <p className="text-xs text-gray-500 mt-1">
-          Latest: 10:30 AM
+          Latest: {latestText}
         </p>
       </div>
 
@@ -168,7 +178,7 @@ export default function KollelAttendanceForm({ date, programId, onSuccess }: Kol
       <button
         type="submit"
         disabled={isSubmitting}
-        className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full bg-blue-600 text-white py-3 sm:py-2 px-4 text-sm sm:text-base rounded-lg font-semibold hover:bg-blue-700 active:bg-blue-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation min-h-[48px]"
       >
         {isSubmitting ? 'Submitting...' : 'Submit Attendance'}
       </button>
