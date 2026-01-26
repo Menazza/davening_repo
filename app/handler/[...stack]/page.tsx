@@ -79,7 +79,7 @@ export default function Handler() {
               </div>
             </div>
             <div className="mt-4 sm:mt-6">
-              <StackHandler />
+              <StackHandler fullPage={false} />
             </div>
           </div>
         </div>
