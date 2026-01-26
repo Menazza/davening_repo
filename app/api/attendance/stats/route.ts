@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Also get kollel attendance stats
-    let kollelAttendance;
+    let kollelAttendance: any[] = [];
     if (programId && userProgramIds.includes(programId)) {
       kollelAttendance = await sql`
         SELECT 
