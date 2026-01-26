@@ -36,6 +36,8 @@ export default function ProfileClient({ user: initialUser }: ProfileClientProps)
   const [allPrograms, setAllPrograms] = useState<Program[]>([]);
   const [userProgramIds, setUserProgramIds] = useState<string[]>([]);
   const [isLoadingPrograms, setIsLoadingPrograms] = useState(true);
+  const [isProgramEnrollmentOpen, setIsProgramEnrollmentOpen] = useState(false);
+  const [isPersonalInfoOpen, setIsPersonalInfoOpen] = useState(false);
   // Determine if existing bank_name is in our list or is "Other"
   const bankOptions = [
     'Standard Bank',
@@ -132,6 +134,8 @@ export default function ProfileClient({ user: initialUser }: ProfileClientProps)
         setMessage({ type: 'success', text: 'Program enrollments updated successfully!' });
         // Reload to get updated program list
         await loadPrograms();
+        // Close the enrollment section after saving
+        setIsProgramEnrollmentOpen(false);
       } else {
         const data = await response.json();
         setMessage({ type: 'error', text: data.error || 'Failed to update program enrollments' });
@@ -157,6 +161,8 @@ export default function ProfileClient({ user: initialUser }: ProfileClientProps)
 
       if (response.ok) {
         setMessage({ type: 'success', text: 'Profile updated successfully!' });
+        // Close the personal info section after saving
+        setIsPersonalInfoOpen(false);
       } else {
         const data = await response.json();
         setMessage({ type: 'error', text: data.error || 'Failed to update profile' });
@@ -208,12 +214,29 @@ export default function ProfileClient({ user: initialUser }: ProfileClientProps)
 
         {/* Program Enrollment Section */}
         <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
-          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Program Enrollment</h3>
-          <p className="text-sm text-gray-600 mb-3 sm:mb-4">
-            Select the programs you are part of. You can only submit attendance for programs you're enrolled in.
-          </p>
+          <button
+            type="button"
+            onClick={() => setIsProgramEnrollmentOpen(!isProgramEnrollmentOpen)}
+            className="w-full flex items-center justify-between text-left"
+          >
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900">Program Enrollment</h3>
+            <svg
+              className={`w-5 h-5 text-gray-500 transition-transform ${isProgramEnrollmentOpen ? 'transform rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
           
-          {isLoadingPrograms ? (
+          {isProgramEnrollmentOpen && (
+            <>
+              <p className="text-sm text-gray-600 mb-3 sm:mb-4 mt-3">
+                Select the programs you are part of. You can only submit attendance for programs you're enrolled in.
+              </p>
+          
+              {isLoadingPrograms ? (
             <div className="text-gray-600">Loading programs...</div>
           ) : (
             <>
@@ -257,11 +280,29 @@ export default function ProfileClient({ user: initialUser }: ProfileClientProps)
               </button>
             </>
           )}
+            </>
+          )}
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
-          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Personal Information</h3>
-          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+          <button
+            type="button"
+            onClick={() => setIsPersonalInfoOpen(!isPersonalInfoOpen)}
+            className="w-full flex items-center justify-between text-left"
+          >
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900">Personal Information</h3>
+            <svg
+              className={`w-5 h-5 text-gray-500 transition-transform ${isPersonalInfoOpen ? 'transform rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          
+          {isPersonalInfoOpen && (
+            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6 mt-4">
             <div>
               <label htmlFor="full_name" className="block text-sm font-medium text-gray-700 mb-1">
                 Full Name
@@ -400,6 +441,7 @@ export default function ProfileClient({ user: initialUser }: ProfileClientProps)
               {isSaving ? 'Saving...' : 'Save Profile'}
             </button>
           </form>
+          )}
         </div>
       </div>
     </div>

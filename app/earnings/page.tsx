@@ -27,6 +27,13 @@ interface EarningsHistory {
   early_bonus: number;
   learning_bonus: number;
   is_weekend: boolean;
+  program_id?: string | null;
+  program_name?: string | null;
+}
+
+interface Program {
+  id: string;
+  name: string;
 }
 
 interface User {
@@ -44,6 +51,8 @@ export default function EarningsPage() {
   const [earningsHistory, setEarningsHistory] = useState<EarningsHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'summary' | 'earnings' | 'payments'>('summary');
+  const [programs, setPrograms] = useState<Program[]>([]);
+  const [handlerProgramId, setHandlerProgramId] = useState<string | null>(null);
 
   useEffect(() => {
     checkAuth();
@@ -52,11 +61,12 @@ export default function EarningsPage() {
   const checkAuth = async () => {
     try {
       // Fetch all data in parallel for faster loading
-      const [authResponse, earningsResponse, paymentsResponse, earningsHistoryResponse] = await Promise.all([
+      const [authResponse, earningsResponse, paymentsResponse, earningsHistoryResponse, programsResponse] = await Promise.all([
         fetch('/api/auth/me'),
         fetch('/api/earnings'),
         fetch('/api/payments?type=payments'),
         fetch('/api/payments?type=earnings'),
+        fetch('/api/programs'),
       ]);
 
       if (!authResponse.ok) {
@@ -65,11 +75,12 @@ export default function EarningsPage() {
       }
 
       // Process all responses in parallel
-      const [authData, earningsData, paymentsData, earningsHistoryData] = await Promise.all([
+      const [authData, earningsData, paymentsData, earningsHistoryData, programsData] = await Promise.all([
         authResponse.json(),
         earningsResponse.ok ? earningsResponse.json() : Promise.resolve(null),
         paymentsResponse.ok ? paymentsResponse.json() : Promise.resolve(null),
         earningsHistoryResponse.ok ? earningsHistoryResponse.json() : Promise.resolve(null),
+        programsResponse.ok ? programsResponse.json() : Promise.resolve(null),
       ]);
 
       // Redirect admins to admin portal
@@ -90,6 +101,16 @@ export default function EarningsPage() {
           amount: Number(payment.amount || 0),
         }));
         setPayments(formattedPayments);
+      }
+
+      // Load programs and find Handler program
+      if (programsData?.programs) {
+        const programsList = programsData.programs || [];
+        setPrograms(programsList);
+        const handlerProgram = programsList.find((p: Program) => p.name === 'Handler');
+        if (handlerProgram) {
+          setHandlerProgramId(handlerProgram.id);
+        }
       }
 
       if (earningsHistoryData?.earnings) {
@@ -239,41 +260,43 @@ export default function EarningsPage() {
           <div className="p-6">
             {activeTab === 'summary' && earnings && (
               <div className="space-y-6">
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="bg-green-50 rounded-lg p-4 border border-green-200">
                     <p className="text-sm text-gray-600 mb-1">Total Earned</p>
-                    <p className="text-3xl font-bold text-green-600">
+                    <p className="text-2xl sm:text-3xl font-bold text-green-600 break-words">
                       R{earnings.totalEarned.toFixed(2)}
                     </p>
                   </div>
                   <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
                     <p className="text-sm text-gray-600 mb-1">Total Paid</p>
-                    <p className="text-3xl font-bold text-blue-600">
+                    <p className="text-2xl sm:text-3xl font-bold text-blue-600 break-words">
                       R{earnings.totalPaid.toFixed(2)}
                     </p>
                   </div>
                   <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
                     <p className="text-sm text-gray-600 mb-1">Total Owed</p>
-                    <p className="text-3xl font-bold text-orange-600">
+                    <p className="text-2xl sm:text-3xl font-bold text-orange-600 break-words">
                       R{earnings.totalOwed.toFixed(2)}
                     </p>
                   </div>
                 </div>
 
-                <div className="border-t pt-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Earnings Breakdown
-                  </h3>
-                  <p className="text-sm text-gray-600 mb-2">
-                    <strong>Weekday Rate:</strong> R100 per activity (on-time, early arrival, learning)
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    <strong>Weekend Rate (Saturday + Sunday):</strong> R150 per activity
-                  </p>
-                  <p className="text-sm text-gray-600 mt-2">
-                    <strong>Maximum per day:</strong> R300 (weekday) or R450 (weekend pair)
-                  </p>
-                </div>
+                {handlerProgramId && (
+                  <div className="border-t pt-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                      Earnings Breakdown (Handler Program)
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-2">
+                      <strong>Weekday Rate:</strong> R100 per activity (on-time, early arrival, learning)
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      <strong>Weekend Rate (Saturday + Sunday):</strong> R150 per activity
+                    </p>
+                    <p className="text-sm text-gray-600 mt-2">
+                      <strong>Maximum per day:</strong> R300 (weekday) or R450 (weekend pair)
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -282,6 +305,9 @@ export default function EarningsPage() {
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
                   Daily Earnings History
                 </h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Note: Earnings are currently combined across all programs. The breakdown below applies to Handler program only.
+                </p>
                 {earningsHistory.length === 0 ? (
                   <p className="text-gray-500">No earnings history yet.</p>
                 ) : (
@@ -352,6 +378,9 @@ export default function EarningsPage() {
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
                   Payment History
                 </h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Note: Payments are currently shown combined across all programs. Program-specific payment tracking will be available soon.
+                </p>
                 {payments.length === 0 ? (
                   <p className="text-gray-500">No payments recorded yet.</p>
                 ) : (
