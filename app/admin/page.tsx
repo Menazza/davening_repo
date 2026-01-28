@@ -797,9 +797,77 @@ export default function AdminPage() {
                     )}
                   </div>
 
-                  {/* Earnings History */}
+                  {/* Monthly Earnings Summary */}
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Earnings History</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Monthly Earnings Summary</h3>
+                    {userEarnings.length > 0 ? (
+                      <div className="overflow-x-auto mb-6">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Month
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Days Attended
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Total Earnings
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Avg per Day
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {(() => {
+                              // Group earnings by month
+                              const monthlyData = userEarnings.reduce((acc: any, earning) => {
+                                const monthKey = format(new Date(earning.date), 'yyyy-MM');
+                                if (!acc[monthKey]) {
+                                  acc[monthKey] = {
+                                    month: monthKey,
+                                    days: 0,
+                                    total: 0
+                                  };
+                                }
+                                acc[monthKey].days += 1;
+                                acc[monthKey].total += earning.amount_earned;
+                                return acc;
+                              }, {});
+                              
+                              return Object.values(monthlyData)
+                                .sort((a: any, b: any) => b.month.localeCompare(a.month))
+                                .map((data: any) => (
+                                  <tr key={data.month} className="hover:bg-gray-50">
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                                      {format(new Date(data.month + '-01'), 'MMMM yyyy')}
+                                    </td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                                      {data.days} days
+                                    </td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-green-700">
+                                      R{data.total.toFixed(2)}
+                                    </td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                                      R{(data.total / data.days).toFixed(2)}
+                                    </td>
+                                  </tr>
+                                ));
+                            })()}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg mb-6">
+                        No earnings recorded yet.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Daily Earnings History */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Daily Earnings History</h3>
                     {userEarnings.length > 0 ? (
                       <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">

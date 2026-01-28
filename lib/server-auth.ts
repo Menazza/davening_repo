@@ -77,4 +77,3 @@ export async function getAuthenticatedKollelAdmin(): Promise<User> {
   
   return user;
 }
-

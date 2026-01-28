@@ -29,9 +29,7 @@ body {
 /* Stack Auth form styling for mobile-optimized login portal */
 [data-stack-handler] {
   background: transparent !important;
-}
-
-[data-stack-handler] form {
+}[data-stack-handler] form {
   background: transparent !important;
 }
 
