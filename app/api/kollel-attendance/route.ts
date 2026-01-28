@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { submitKollelAttendance, getKollelAttendanceByDate, deleteKollelAttendance } from '@/lib/kollel';
+import { calculateKollelEarnings } from '@/lib/kollel-payments';
 import { getAuthenticatedUser } from '@/lib/server-auth';
 import { getProgramById } from '@/lib/programs';
 
@@ -31,6 +32,18 @@ export async function POST(request: NextRequest) {
       },
       programName
     );
+
+    // Automatically recalculate earnings for the month
+    const attendanceDate = new Date(date);
+    const year = attendanceDate.getFullYear();
+    const month = attendanceDate.getMonth() + 1; // JavaScript months are 0-indexed
+    
+    try {
+      await calculateKollelEarnings(user.id, program_id, year, month);
+    } catch (earningsError) {
+      console.error('Failed to recalculate earnings:', earningsError);
+      // Don't fail the attendance submission if earnings calculation fails
+    }
 
     return NextResponse.json({ success: true, attendance: result });
   } catch (error: any) {
@@ -88,6 +101,18 @@ export async function DELETE(request: NextRequest) {
     }
 
     await deleteKollelAttendance(user.id, program_id, new Date(date));
+
+    // Automatically recalculate earnings for the month
+    const attendanceDate = new Date(date);
+    const year = attendanceDate.getFullYear();
+    const month = attendanceDate.getMonth() + 1; // JavaScript months are 0-indexed
+    
+    try {
+      await calculateKollelEarnings(user.id, program_id, year, month);
+    } catch (earningsError) {
+      console.error('Failed to recalculate earnings:', earningsError);
+      // Don't fail the deletion if earnings calculation fails
+    }
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

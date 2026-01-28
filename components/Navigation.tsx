@@ -9,6 +9,7 @@ interface NavigationProps {
     full_name?: string;
     email: string;
     is_admin: boolean;
+    admin_type?: 'hendler' | 'kollel' | null;
   };
   onLogout: () => void;
 }
@@ -17,22 +18,45 @@ export default function Navigation({ user, onLogout }: NavigationProps) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Admins only see admin portal, students see student pages
-  const navItems = user.is_admin
-    ? [{ href: '/admin', label: 'Admin Portal' }]
-    : [
-        { href: '/dashboard', label: 'Dashboard' },
-        { href: '/statistics', label: 'Statistics' },
-        { href: '/profile', label: 'Profile' },
-        { href: '/earnings', label: 'Earnings' },
-      ];
+  // Determine nav items based on user role
+  let navItems;
+  if (user.is_admin && user.admin_type === 'hendler') {
+    // Hendler admin only sees Hendler portal
+    navItems = [{ href: '/admin', label: 'Admin Portal' }];
+  } else if (user.is_admin && user.admin_type === 'kollel') {
+    // Kollel admin only sees Kollel portal
+    navItems = [{ href: '/kollel-admin', label: 'Admin Portal' }];
+  } else if (user.is_admin) {
+    // Legacy admin without type sees both (for backward compatibility)
+    navItems = [
+      { href: '/admin', label: 'Hendler Admin' },
+      { href: '/kollel-admin', label: 'Kollel Admin' }
+    ];
+  } else {
+    // Regular students see student pages
+    navItems = [
+      { href: '/dashboard', label: 'Dashboard' },
+      { href: '/statistics', label: 'Statistics' },
+      { href: '/profile', label: 'Profile' },
+      { href: '/earnings', label: 'Earnings' },
+    ];
+  }
 
   return (
     <nav className="bg-white shadow-md border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center space-x-4 md:space-x-8">
-            <Link href={user.is_admin ? "/admin" : "/dashboard"} className="flex items-center">
+            <Link 
+              href={
+                user.is_admin && user.admin_type === 'kollel' 
+                  ? "/kollel-admin" 
+                  : user.is_admin 
+                    ? "/admin" 
+                    : "/dashboard"
+              } 
+              className="flex items-center"
+            >
               <h1 className="text-lg md:text-xl font-bold text-gray-900">
                 Tracker
               </h1>

@@ -50,3 +50,31 @@ export async function getAuthenticatedAdmin(): Promise<User> {
   return user;
 }
 
+/**
+ * Get the authenticated Hendler admin user
+ * Throws an error if not authenticated or not a Hendler admin
+ */
+export async function getAuthenticatedHendlerAdmin(): Promise<User> {
+  const user = await getAuthenticatedUser();
+  
+  if (!user.is_admin || user.admin_type !== 'hendler') {
+    throw new Error('Hendler admin access required');
+  }
+  
+  return user;
+}
+
+/**
+ * Get the authenticated Kollel admin user
+ * Throws an error if not authenticated or not a Kollel admin
+ */
+export async function getAuthenticatedKollelAdmin(): Promise<User> {
+  const user = await getAuthenticatedUser();
+  
+  if (!user.is_admin || user.admin_type !== 'kollel') {
+    throw new Error('Kollel admin access required');
+  }
+  
+  return user;
+}
+

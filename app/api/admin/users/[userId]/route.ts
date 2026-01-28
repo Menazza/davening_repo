@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserProfile } from '@/lib/auth';
 import { getUserPayments, getUserEarningsHistory } from '@/lib/payments';
-import { getAuthenticatedAdmin } from '@/lib/server-auth';
+import { getAuthenticatedHendlerAdmin } from '@/lib/server-auth';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { userId: string } }
 ) {
   try {
-    await getAuthenticatedAdmin();
+    await getAuthenticatedHendlerAdmin();
 
     const { userId } = params;
     if (!userId) {

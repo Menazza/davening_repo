@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createPayment, getUserPayments, getUserEarningsHistory } from '@/lib/payments';
-import { getAuthenticatedUser, getAuthenticatedAdmin } from '@/lib/server-auth';
+import { getAuthenticatedUser, getAuthenticatedHendlerAdmin } from '@/lib/server-auth';
 
 export async function POST(request: NextRequest) {
   try {
-    const admin = await getAuthenticatedAdmin();
+    const admin = await getAuthenticatedHendlerAdmin();
 
     const body = await request.json();
     const { user_id, amount, payment_date, notes } = body;
@@ -42,8 +42,8 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('user_id');
     const type = searchParams.get('type'); // 'payments' or 'earnings'
 
-    // Users can only view their own history, admins can view anyone's
-    const targetUserId = user.is_admin && userId ? userId : user.id;
+    // Users can only view their own history, hendler admins can view anyone's
+    const targetUserId = (user.is_admin && user.admin_type === 'hendler' && userId) ? userId : user.id;
 
     if (type === 'earnings') {
       const earnings = await getUserEarningsHistory(targetUserId);

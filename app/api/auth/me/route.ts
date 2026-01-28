@@ -21,6 +21,15 @@ export async function GET(request: NextRequest) {
         user.primaryEmail || '',
         user.displayName || undefined
       );
+    } else if (user.displayName && !profile.full_name) {
+      // If Stack Auth has a displayName but our DB doesn't, sync it
+      const { updateUserProfile } = await import('@/lib/auth');
+      const updated = await updateUserProfile(user.id, {
+        full_name: user.displayName
+      });
+      if (updated) {
+        profile = updated;
+      }
     }
 
     return NextResponse.json({ user: profile });

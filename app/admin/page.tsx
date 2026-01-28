@@ -100,8 +100,13 @@ export default function AdminPage() {
         return;
       }
       const data = await response.json();
-      if (!data.user.is_admin) {
-        router.push('/dashboard');
+      if (!data.user.is_admin || data.user.admin_type !== 'hendler') {
+        // Not a Hendler admin - redirect to appropriate page
+        if (data.user.admin_type === 'kollel') {
+          router.push('/kollel-admin');
+        } else {
+          router.push('/dashboard');
+        }
         return;
       }
       setUser(data.user);

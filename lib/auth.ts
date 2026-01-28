@@ -10,6 +10,7 @@ export interface User {
   branch_code?: string;
   account_type?: string;
   is_admin: boolean;
+  admin_type?: 'hendler' | 'kollel' | null;
 }
 
 export async function getUserProfile(userIdOrEmail: string): Promise<User | null> {
