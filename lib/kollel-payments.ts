@@ -144,12 +144,59 @@ export async function calculateKollelEarnings(
 }
 
 /**
+ * Get daily kollel attendance records for a user
+ */
+export async function getUserDailyKollelAttendance(
+  userId: string,
+  programId: string
+): Promise<
+  Array<{
+    date: string;
+    arrival_time: string;
+    departure_time: string;
+    minutes_attended: number;
+    created_at: string;
+  }>
+> {
+  const result = await sql`
+    SELECT 
+      date,
+      arrival_time,
+      departure_time,
+      created_at
+    FROM kollel_attendance
+    WHERE user_id = ${userId} AND program_id = ${programId}
+    ORDER BY date DESC
+  `;
+
+  return result.map((row: any) => ({
+    date: row.date,
+    arrival_time: row.arrival_time,
+    departure_time: row.departure_time,
+    minutes_attended: calculateMinutesAttended(row.arrival_time, row.departure_time),
+    created_at: row.created_at,
+  }));
+}
+
+/**
  * Get kollel earnings for a user
  */
 export async function getUserKollelEarnings(
   userId: string,
   programId: string
-): Promise<{ totalEarned: number; totalPaid: number; totalOwed: number; monthlyEarnings: KollelEarningsRecord[] }> {
+): Promise<{ 
+  totalEarned: number; 
+  totalPaid: number; 
+  totalOwed: number; 
+  monthlyEarnings: KollelEarningsRecord[];
+  dailyAttendance: Array<{
+    date: string;
+    arrival_time: string;
+    departure_time: string;
+    minutes_attended: number;
+    created_at: string;
+  }>;
+}> {
   // Get all earnings records
   const earningsResult = await sql`
     SELECT * FROM kollel_earnings
@@ -182,7 +229,10 @@ export async function getUserKollelEarnings(
   const totalPaid = Number(paymentsResult[0]?.total_paid || 0);
   const totalOwed = totalEarned - totalPaid;
 
-  return { totalEarned, totalPaid, totalOwed, monthlyEarnings };
+  // Get daily attendance
+  const dailyAttendance = await getUserDailyKollelAttendance(userId, programId);
+
+  return { totalEarned, totalPaid, totalOwed, monthlyEarnings, dailyAttendance };
 }
 
 /**
