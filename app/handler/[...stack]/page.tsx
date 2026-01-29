@@ -32,18 +32,20 @@ export default function Handler() {
             console.log('[Handler] Profile data:', data);
             if (data.user?.is_admin) {
               console.log('[Handler] Redirecting to /admin');
-              router.push('/admin');
+              // Add bypass parameter to skip middleware auth check on first load
+              window.location.href = '/admin?_stack_redirect=1';
             } else {
               console.log('[Handler] Redirecting to /dashboard');
-              router.push('/dashboard');
+              // Add bypass parameter to skip middleware auth check on first load
+              window.location.href = '/dashboard?_stack_redirect=1';
             }
           })
           .catch((err) => {
             console.error('[Handler] Profile check failed:', err);
             // If we can't check, default to dashboard
-            router.push('/dashboard');
+            window.location.href = '/dashboard?_stack_redirect=1';
           });
-      }, 500); // Give time for cookies to sync
+      }, 1000); // Give more time for cookies to sync
     }
   }, [user, router, pathname]);
 

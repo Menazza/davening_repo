@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 import { stackServerApp } from './stack/server';
 
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const { pathname, searchParams } = request.nextUrl;
 
   // Skip middleware for API routes - they handle their own authentication
   if (pathname.startsWith('/api/')) {
@@ -28,6 +28,15 @@ export async function middleware(request: NextRequest) {
 
   if (isPublicRoute) {
     return NextResponse.next();
+  }
+
+  // Allow first redirect after sign-in to bypass auth check
+  // This gives time for cookies to propagate
+  if (searchParams.get('_stack_redirect') === '1') {
+    console.log(`[Middleware] Stack redirect bypass for ${pathname}`);
+    // Remove the parameter and continue
+    const response = NextResponse.next();
+    return response;
   }
 
   // Check authentication for protected page routes only

@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import DaveningTimes from '@/components/DaveningTimes';
 import AttendanceCalendar from '@/components/AttendanceCalendar';
@@ -32,6 +32,17 @@ interface DashboardClientProps {
 export default function DashboardClient({ user, announcements, hasHandlerProgram }: DashboardClientProps) {
   const router = useRouter();
   const stackUser = useUser();
+  const searchParams = useSearchParams();
+
+  // Clean up the redirect parameter from URL after successful load
+  useEffect(() => {
+    if (searchParams.get('_stack_redirect') === '1') {
+      // Remove the parameter from URL without reloading
+      const url = new URL(window.location.href);
+      url.searchParams.delete('_stack_redirect');
+      window.history.replaceState({}, '', url.pathname + url.search);
+    }
+  }, [searchParams]);
 
   const handleLogout = async () => {
     try {

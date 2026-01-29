@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { format } from 'date-fns';
 import { useUser } from '@stackframe/stack';
 import Navigation from '@/components/Navigation';
@@ -65,6 +65,7 @@ interface AdminStats {
 
 export default function AdminPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [user, setUser] = useState<User | null>(null);
   const [users, setUsers] = useState<UserEarnings[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<UserEarnings[]>([]);
@@ -83,6 +84,16 @@ export default function AdminPage() {
   const [userPayments, setUserPayments] = useState<PaymentRecord[]>([]);
   const [userEarnings, setUserEarnings] = useState<EarningsRecord[]>([]);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+
+  // Clean up the redirect parameter from URL after successful load
+  useEffect(() => {
+    if (searchParams.get('_stack_redirect') === '1') {
+      // Remove the parameter from URL without reloading
+      const url = new URL(window.location.href);
+      url.searchParams.delete('_stack_redirect');
+      window.history.replaceState({}, '', url.pathname + url.search);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     checkAuth();
