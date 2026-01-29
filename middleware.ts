@@ -14,6 +14,7 @@ export async function middleware(request: NextRequest) {
   const publicRoutes = [
     '/handler',
     '/',
+    '/login',
     '/test-auth',
   ];
   
