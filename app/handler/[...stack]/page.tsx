@@ -16,20 +16,34 @@ export default function Handler() {
     // Use ref to prevent multiple redirects
     if (user && (pathname?.includes('/sign-in') || pathname?.includes('/sign-up')) && !hasRedirected.current) {
       hasRedirected.current = true;
-      // Check if user is admin by fetching profile
-      fetch('/api/auth/me')
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.user?.is_admin) {
-            window.location.href = '/admin';
-          } else {
-            window.location.href = '/dashboard';
-          }
+      
+      console.log('[Handler] User detected, checking profile before redirect');
+      
+      // Wait a bit for cookies to fully sync, then check profile
+      setTimeout(() => {
+        fetch('/api/auth/me', {
+          credentials: 'include', // Ensure cookies are sent
         })
-        .catch(() => {
-          // If we can't check, default to dashboard
-          window.location.href = '/dashboard';
-        });
+          .then((res) => {
+            console.log('[Handler] Profile check response status:', res.status);
+            return res.json();
+          })
+          .then((data) => {
+            console.log('[Handler] Profile data:', data);
+            if (data.user?.is_admin) {
+              console.log('[Handler] Redirecting to /admin');
+              router.push('/admin');
+            } else {
+              console.log('[Handler] Redirecting to /dashboard');
+              router.push('/dashboard');
+            }
+          })
+          .catch((err) => {
+            console.error('[Handler] Profile check failed:', err);
+            // If we can't check, default to dashboard
+            router.push('/dashboard');
+          });
+      }, 500); // Give time for cookies to sync
     }
   }, [user, router, pathname]);
 
