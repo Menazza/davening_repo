@@ -46,6 +46,15 @@ export async function getUserPayments(
   }));
 }
 
+export async function deletePayment(paymentId: string): Promise<boolean> {
+  const result = await sql`
+    DELETE FROM payments
+    WHERE id = ${paymentId}
+    RETURNING id
+  `;
+  return result.length > 0;
+}
+
 export async function getUserEarningsHistory(
   userId: string
 ): Promise<

@@ -103,16 +103,33 @@ export default function AdminPage() {
     filterAndSortUsers();
   }, [users, searchQuery, sortBy]);
 
-  const checkAuth = async () => {
+  const checkAuth = async (attempt: number = 1) => {
+    const maxAttempts = 5;
+    const isStackRedirect = searchParams.get('_stack_redirect') === '1';
+    
     try {
-      const response = await fetch('/api/auth/me');
+      const response = await fetch('/api/auth/me', {
+        credentials: 'include',
+        cache: 'no-store',
+      });
+      
       if (!response.ok) {
+        // If this is a redirect from sign-in, retry with backoff
+        if (isStackRedirect && attempt < maxAttempts) {
+          const delay = Math.min(1000 * Math.pow(1.5, attempt), 5000);
+          console.log(`[Admin] Auth not ready, retrying in ${delay}ms (attempt ${attempt}/${maxAttempts})`);
+          setTimeout(() => checkAuth(attempt + 1), delay);
+          return;
+        }
+        setIsLoading(false);
         router.push('/handler/sign-in');
         return;
       }
+      
       const data = await response.json();
       if (!data.user.is_admin || data.user.admin_type !== 'hendler') {
         // Not a Hendler admin - redirect to appropriate page
+        setIsLoading(false);
         if (data.user.admin_type === 'kollel') {
           router.push('/kollel-admin');
         } else {
@@ -121,11 +138,18 @@ export default function AdminPage() {
         return;
       }
       setUser(data.user);
+      setIsLoading(false);
       fetchUsers();
     } catch (error) {
-      router.push('/handler/sign-in');
-    } finally {
+      // If this is a redirect from sign-in, retry with backoff
+      if (isStackRedirect && attempt < maxAttempts) {
+        const delay = Math.min(1000 * Math.pow(1.5, attempt), 5000);
+        console.log(`[Admin] Auth error, retrying in ${delay}ms (attempt ${attempt}/${maxAttempts})`);
+        setTimeout(() => checkAuth(attempt + 1), delay);
+        return;
+      }
       setIsLoading(false);
+      router.push('/handler/sign-in');
     }
   };
 
@@ -220,6 +244,32 @@ export default function AdminPage() {
       setSelectedUserId(null);
       fetchUsers();
       // Refresh profile if viewing
+      if (viewingUserId) {
+        fetchUserDetails(viewingUserId);
+      }
+    } catch (error) {
+      alert('An error occurred. Please try again.');
+    }
+  };
+
+  const handleDeletePayment = async (paymentId: string, amount: number) => {
+    if (!confirm(`Are you sure you want to delete this payment of R${amount.toFixed(2)}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/payments?id=${paymentId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        alert(data.error || 'Failed to delete payment');
+        return;
+      }
+
+      alert('Payment deleted successfully!');
+      fetchUsers();
       if (viewingUserId) {
         fetchUserDetails(viewingUserId);
       }
@@ -779,6 +829,9 @@ export default function AdminPage() {
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Recorded At
                               </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Actions
+                              </th>
                             </tr>
                           </thead>
                           <tbody className="bg-white divide-y divide-gray-200">
@@ -795,6 +848,17 @@ export default function AdminPage() {
                                 </td>
                                 <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                                   {format(new Date(payment.created_at), 'PPp')}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                  <button
+                                    onClick={() => handleDeletePayment(payment.id, payment.amount)}
+                                    className="text-red-600 hover:text-red-800 hover:bg-red-50 px-2 py-1 rounded transition-colors"
+                                    title="Delete payment"
+                                  >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                  </button>
                                 </td>
                               </tr>
                             ))}

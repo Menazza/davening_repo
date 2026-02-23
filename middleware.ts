@@ -30,13 +30,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Allow first redirect after sign-in to bypass auth check
-  // This gives time for cookies to propagate
+  // Allow first redirect after sign-in to bypass auth check entirely
+  // This gives time for cookies to propagate on mobile devices
+  // The client component will handle auth verification
   if (searchParams.get('_stack_redirect') === '1') {
-    console.log(`[Middleware] Stack redirect bypass for ${pathname}`);
-    // Remove the parameter and continue
-    const response = NextResponse.next();
-    return response;
+    // Continue without auth check - the page will verify auth client-side
+    return NextResponse.next();
   }
 
   // Check authentication for protected page routes only

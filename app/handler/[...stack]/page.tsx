@@ -3,53 +3,111 @@
 import { StackHandler } from "@stackframe/stack";
 import { useUser } from "@stackframe/stack";
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function Handler() {
   const user = useUser();
   const router = useRouter();
   const pathname = usePathname();
   const hasRedirected = useRef(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
+  const [redirectAttempts, setRedirectAttempts] = useState(0);
+  const maxRetries = 5;
 
   useEffect(() => {
     // If user is already signed in and they're on sign-in or sign-up, redirect appropriately
     // Use ref to prevent multiple redirects
     if (user && (pathname?.includes('/sign-in') || pathname?.includes('/sign-up')) && !hasRedirected.current) {
       hasRedirected.current = true;
+      setIsRedirecting(true);
       
       console.log('[Handler] User detected, checking profile before redirect');
       
-      // Wait a bit for cookies to fully sync, then check profile
-      setTimeout(() => {
-        fetch('/api/auth/me', {
-          credentials: 'include', // Ensure cookies are sent
-        })
-          .then((res) => {
-            console.log('[Handler] Profile check response status:', res.status);
-            return res.json();
-          })
-          .then((data) => {
-            console.log('[Handler] Profile data:', data);
-            if (data.user?.is_admin) {
-              console.log('[Handler] Redirecting to /admin');
-              // Add bypass parameter to skip middleware auth check on first load
-              window.location.href = '/admin?_stack_redirect=1';
-            } else {
-              console.log('[Handler] Redirecting to /dashboard');
-              // Add bypass parameter to skip middleware auth check on first load
-              window.location.href = '/dashboard?_stack_redirect=1';
-            }
-          })
-          .catch((err) => {
-            console.error('[Handler] Profile check failed:', err);
-            // If we can't check, default to dashboard
-            window.location.href = '/dashboard?_stack_redirect=1';
+      // Function to verify cookies are working before redirecting
+      const verifyAndRedirect = async (attempt: number) => {
+        console.log(`[Handler] Verification attempt ${attempt}/${maxRetries}`);
+        
+        try {
+          const res = await fetch('/api/auth/me', {
+            credentials: 'include',
+            cache: 'no-store',
           });
-      }, 1000); // Give more time for cookies to sync
+          
+          console.log('[Handler] Profile check response status:', res.status);
+          
+          if (res.status === 401 || res.status === 500) {
+            // Cookies not ready yet, retry with exponential backoff
+            if (attempt < maxRetries) {
+              const delay = Math.min(1000 * Math.pow(1.5, attempt), 5000);
+              console.log(`[Handler] Auth not ready, retrying in ${delay}ms...`);
+              setRedirectAttempts(attempt);
+              setTimeout(() => verifyAndRedirect(attempt + 1), delay);
+              return;
+            } else {
+              console.error('[Handler] Max retries reached, forcing redirect anyway');
+            }
+          }
+          
+          const data = await res.json();
+          console.log('[Handler] Profile data:', data);
+          
+          // Use router.push with _stack_redirect param to bypass middleware auth check
+          // This allows the page to load while cookies fully propagate
+          if (data.user?.is_admin) {
+            console.log('[Handler] Redirecting to /admin');
+            router.push('/admin?_stack_redirect=1');
+          } else {
+            console.log('[Handler] Redirecting to /dashboard');
+            router.push('/dashboard?_stack_redirect=1');
+          }
+        } catch (err) {
+          console.error('[Handler] Profile check failed:', err);
+          
+          // Retry on network errors
+          if (attempt < maxRetries) {
+            const delay = Math.min(1000 * Math.pow(1.5, attempt), 5000);
+            console.log(`[Handler] Retrying in ${delay}ms...`);
+            setRedirectAttempts(attempt);
+            setTimeout(() => verifyAndRedirect(attempt + 1), delay);
+          } else {
+            // Last resort - try dashboard with bypass param
+            console.log('[Handler] Max retries reached, defaulting to dashboard');
+            router.push('/dashboard?_stack_redirect=1');
+          }
+        }
+      };
+      
+      // Start verification after a short initial delay for cookies to set
+      setTimeout(() => verifyAndRedirect(1), 500);
     }
   }, [user, router, pathname]);
 
   const isSignInOrSignUp = pathname?.includes('/sign-in') || pathname?.includes('/sign-up');
+
+  // Show redirecting state while we verify auth and redirect
+  if (isRedirecting) {
+    return (
+      <div className="min-h-screen bg-blue-50 flex items-center justify-center">
+        <div className="text-center p-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4 shadow-xl animate-pulse">
+            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">Signing you in...</h2>
+          <p className="text-gray-600 text-sm">
+            {redirectAttempts > 0 
+              ? `Verifying your session (attempt ${redirectAttempts}/${maxRetries})...`
+              : 'Please wait while we set up your session'
+            }
+          </p>
+          <div className="mt-4">
+            <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (isSignInOrSignUp) {
     return (

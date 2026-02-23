@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createPayment, getUserPayments, getUserEarningsHistory } from '@/lib/payments';
+import { createPayment, getUserPayments, getUserEarningsHistory, deletePayment } from '@/lib/payments';
 import { getAuthenticatedUser, getAuthenticatedHendlerAdmin } from '@/lib/server-auth';
 
 export async function POST(request: NextRequest) {
@@ -56,6 +56,40 @@ export async function GET(request: NextRequest) {
     console.error('Get payments error:', error);
     return NextResponse.json(
       { error: 'Failed to get payments' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    // Only Hendler admins can delete payments
+    await getAuthenticatedHendlerAdmin();
+
+    const { searchParams } = new URL(request.url);
+    const paymentId = searchParams.get('id');
+
+    if (!paymentId) {
+      return NextResponse.json(
+        { error: 'Payment ID is required' },
+        { status: 400 }
+      );
+    }
+
+    const deleted = await deletePayment(paymentId);
+
+    if (!deleted) {
+      return NextResponse.json(
+        { error: 'Payment not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error('Delete payment error:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete payment' },
       { status: 500 }
     );
   }

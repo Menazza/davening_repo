@@ -2,47 +2,64 @@ import { redirect } from 'next/navigation';
 import { getAuthenticatedUser } from '@/lib/server-auth';
 import { getActiveAnnouncements } from '@/lib/admin';
 import { getUserProgramsWithDetails } from '@/lib/user-programs';
+import { getApplicationByUserId, isApplicationComplete } from '@/lib/application';
+import { hasAcceptedTermsThisMonth } from '@/lib/terms';
 import DashboardClient from './DashboardClient';
+import DashboardLoading from './DashboardLoading';
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | string[] | undefined };
+}) {
+  const isStackRedirect = searchParams._stack_redirect === '1';
   let user;
   let announcements = [];
 
   try {
-    // Fetch all data in parallel on the server
     user = await getAuthenticatedUser();
-    
-    // Redirect admins to admin portal
+
     if (user.is_admin) {
       redirect('/admin');
     }
-    
-    // Check if user has enrolled in any programs
+
+    // New users must complete the Davening Programme application first
+    const application = await getApplicationByUserId(user.id).catch(() => null);
+    if (!isApplicationComplete(application)) {
+      redirect('/application');
+    }
+
     const userPrograms = await getUserProgramsWithDetails(user.id).catch(() => []);
-    
-    // If user has no programs, redirect to profile to enroll
     if (userPrograms.length === 0) {
       redirect('/profile?enroll=true');
     }
-    
-    // Fetch announcements
+
     announcements = await getActiveAnnouncements().catch(() => []);
   } catch (error) {
-    // If not authenticated, redirect to sign-in
+    if (isStackRedirect) {
+      return <DashboardLoading />;
+    }
     redirect('/handler/sign-in');
   }
 
-  // Format announcements for client
-  const announcementsData = announcements.map(a => ({
+  const announcementsData = announcements.map((a: any) => ({
     id: a.id,
     title: a.title,
     message: a.message,
     created_at: a.created_at,
   }));
 
-  // Check if user has Handler program enrolled
   const userPrograms = await getUserProgramsWithDetails(user.id).catch(() => []);
   const hasHandlerProgram = userPrograms.some((p: any) => p.name === 'Handler');
+  const acceptedTermsThisMonth = await hasAcceptedTermsThisMonth(user.id).catch(() => false);
+  const needsTermsAcceptance = hasHandlerProgram && !acceptedTermsThisMonth;
 
-  return <DashboardClient user={user} announcements={announcementsData} hasHandlerProgram={hasHandlerProgram} />;
+  return (
+    <DashboardClient
+      user={user}
+      announcements={announcementsData}
+      hasHandlerProgram={hasHandlerProgram}
+      needsTermsAcceptance={needsTermsAcceptance}
+    />
+  );
 }

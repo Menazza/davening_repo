@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { submitAttendance, getAttendanceByDate, deleteAttendance } from '@/lib/attendance';
 import { getAuthenticatedUser } from '@/lib/server-auth';
+import { getProgramById } from '@/lib/programs';
+import { getApplicationByUserId, isApplicationComplete } from '@/lib/application';
+import { hasAcceptedTermsThisMonth } from '@/lib/terms';
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,6 +14,27 @@ export async function POST(request: NextRequest) {
 
     if (!date) {
       return NextResponse.json({ error: 'Date is required' }, { status: 400 });
+    }
+
+    // Handler program: require completed application and terms accepted this month
+    if (program_id) {
+      const program = await getProgramById(program_id);
+      if (program?.name === 'Handler') {
+        const application = await getApplicationByUserId(user.id);
+        if (!isApplicationComplete(application)) {
+          return NextResponse.json(
+            { error: 'You must complete the Davening Programme application before submitting attendance. Please complete your application first.' },
+            { status: 403 }
+          );
+        }
+        const acceptedTerms = await hasAcceptedTermsThisMonth(user.id);
+        if (!acceptedTerms) {
+          return NextResponse.json(
+            { error: 'You must accept the Programme terms for this month before submitting attendance. Please visit your dashboard to accept the terms.' },
+            { status: 403 }
+          );
+        }
+      }
     }
 
     const result = await submitAttendance(user.id, new Date(date), {
