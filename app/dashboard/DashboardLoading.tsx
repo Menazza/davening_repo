@@ -2,31 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser } from '@stackframe/stack';
 
 export default function DashboardLoading() {
   const router = useRouter();
-  const user = useUser();
   const [status, setStatus] = useState<'loading' | 'verifying' | 'error'>('loading');
   const [attempt, setAttempt] = useState(0);
   const maxAttempts = 5;
 
   useEffect(() => {
-    // If no user from Stack Auth client, redirect to sign-in
-    if (user === null) {
-      router.replace('/handler/sign-in');
-      return;
-    }
-
-    // If user is undefined, still loading - set a timeout to force a reload if Stack client is slow
-    if (user === undefined) {
-      const t = setTimeout(() => {
-        window.location.href = '/dashboard';
-      }, 8000);
-      return () => clearTimeout(t);
-    }
-
-    // User exists, verify with server
+    // Don't redirect on user===null - we're in post-sign-in flow, useUser() can be stale
+    // on some devices (Safari, slow hydration). Always verify with server first.
     const verifyAuth = async (attemptNum: number) => {
       setStatus('verifying');
       setAttempt(attemptNum);
@@ -39,12 +24,11 @@ export default function DashboardLoading() {
 
         if (res.ok) {
           const data = await res.json();
-          
-          // Full navigation ensures cookies are sent and avoids refresh loops
+          // Use router to avoid full reload loops; refresh gets fresh server data
           if (data.user?.is_admin) {
-            window.location.href = '/admin';
+            router.replace('/admin');
           } else {
-            window.location.href = '/dashboard';
+            router.refresh();
           }
         } else if (attemptNum < maxAttempts) {
           // Retry with exponential backoff
@@ -65,7 +49,7 @@ export default function DashboardLoading() {
 
     // Start verification
     verifyAuth(1);
-  }, [user, router]);
+  }, [router]);
 
   if (status === 'error') {
     return (

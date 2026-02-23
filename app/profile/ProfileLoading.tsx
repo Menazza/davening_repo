@@ -2,25 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser } from '@stackframe/stack';
 
 export default function ProfileLoading() {
   const router = useRouter();
-  const user = useUser();
   const [status, setStatus] = useState<'loading' | 'verifying' | 'error'>('loading');
   const [attempt, setAttempt] = useState(0);
   const maxAttempts = 5;
 
   useEffect(() => {
-    if (user === null) {
-      router.replace('/handler/sign-in');
-      return;
-    }
-
-    if (user === undefined) {
-      return;
-    }
-
+    // Don't redirect on user===null - we're in post-sign-in flow, useUser() can be stale
     const verifyAuth = async (attemptNum: number) => {
       setStatus('verifying');
       setAttempt(attemptNum);
@@ -56,7 +46,7 @@ export default function ProfileLoading() {
     };
 
     verifyAuth(1);
-  }, [user, router]);
+  }, [router]);
 
   if (status === 'error') {
     return (
