@@ -18,9 +18,12 @@ export default function DashboardLoading() {
       return;
     }
 
-    // If user is undefined, still loading
+    // If user is undefined, still loading - set a timeout to force a reload if Stack client is slow
     if (user === undefined) {
-      return;
+      const t = setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 8000);
+      return () => clearTimeout(t);
     }
 
     // User exists, verify with server
@@ -37,13 +40,11 @@ export default function DashboardLoading() {
         if (res.ok) {
           const data = await res.json();
           
-          // Clean redirect without the _stack_redirect param
+          // Full navigation ensures cookies are sent and avoids refresh loops
           if (data.user?.is_admin) {
-            router.replace('/admin');
+            window.location.href = '/admin';
           } else {
-            // Refresh to reload the page without the param
-            // This will now work because auth is verified
-            router.refresh();
+            window.location.href = '/dashboard';
           }
         } else if (attemptNum < maxAttempts) {
           // Retry with exponential backoff

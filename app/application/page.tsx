@@ -22,7 +22,7 @@ export default async function ApplicationPage({
     redirect('/handler/sign-in');
   }
 
-  const application = await getApplicationByUserId(user.id);
+  const application = await getApplicationByUserId(user.id).catch(() => null);
   const submitted = isApplicationComplete(application);
 
   return (
