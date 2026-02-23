@@ -23,12 +23,8 @@ export default function ProfileLoading() {
 
         if (res.ok) {
           const data = await res.json();
-          
-          if (data.user?.is_admin) {
-            router.replace('/admin');
-          } else {
-            router.refresh();
-          }
+          const path = data.user?.is_admin ? '/admin' : '/profile';
+          window.location.href = path;
         } else if (attemptNum < maxAttempts) {
           const delay = Math.min(1000 * Math.pow(1.5, attemptNum), 5000);
           setTimeout(() => verifyAuth(attemptNum + 1), delay);

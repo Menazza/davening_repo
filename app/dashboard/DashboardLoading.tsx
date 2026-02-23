@@ -24,12 +24,9 @@ export default function DashboardLoading() {
 
         if (res.ok) {
           const data = await res.json();
-          // Use router to avoid full reload loops; refresh gets fresh server data
-          if (data.user?.is_admin) {
-            router.replace('/admin');
-          } else {
-            router.refresh();
-          }
+          // Full navigation ensures server gets fresh cookies; router.refresh can stay stuck
+          const path = data.user?.is_admin ? '/admin' : '/dashboard';
+          window.location.href = path;
         } else if (attemptNum < maxAttempts) {
           // Retry with exponential backoff
           const delay = Math.min(1000 * Math.pow(1.5, attemptNum), 5000);
