@@ -140,6 +140,21 @@ export default function AdminPage() {
     filterAndSortUsers();
   }, [users, searchQuery, sortBy]);
 
+  const fetchApplications = useCallback(async () => {
+    setIsLoadingApplications(true);
+    try {
+      const response = await fetch('/api/admin/applications');
+      if (response.ok) {
+        const data = await response.json();
+        setApplications(data.applications || []);
+      }
+    } catch (error) {
+      console.error('Error fetching applications:', error);
+    } finally {
+      setIsLoadingApplications(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (activeTab === 'applications') {
       fetchApplications();
@@ -207,21 +222,6 @@ export default function AdminPage() {
       console.error('Error fetching users:', error);
     }
   };
-
-  const fetchApplications = useCallback(async () => {
-    setIsLoadingApplications(true);
-    try {
-      const response = await fetch('/api/admin/applications');
-      if (response.ok) {
-        const data = await response.json();
-        setApplications(data.applications || []);
-      }
-    } catch (error) {
-      console.error('Error fetching applications:', error);
-    } finally {
-      setIsLoadingApplications(false);
-    }
-  }, []);
 
   const filterAndSortUsers = () => {
     let filtered = [...users];
