@@ -24,7 +24,7 @@ export default function ProfileLoading() {
         if (res.ok) {
           const data = await res.json();
           const path = data.user?.is_admin ? '/admin' : '/profile';
-          window.location.href = path;
+          window.location.href = `${path}?_stack_redirect=1`;
         } else if (attemptNum < maxAttempts) {
           const delay = Math.min(1000 * Math.pow(1.5, attemptNum), 5000);
           setTimeout(() => verifyAuth(attemptNum + 1), delay);

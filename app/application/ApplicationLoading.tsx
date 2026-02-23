@@ -18,7 +18,7 @@ export default function ApplicationLoading() {
           cache: 'no-store',
         });
         if (res.ok) {
-          window.location.href = '/application';
+          window.location.href = '/application?_stack_redirect=1';
         } else if (attemptNum < maxAttempts) {
           const delay = Math.min(1000 * Math.pow(1.5, attemptNum), 5000);
           setTimeout(() => verifyAuth(attemptNum + 1), delay);
