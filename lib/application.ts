@@ -141,6 +141,21 @@ export async function upsertApplication(
   return result[0] as DaveningApplication;
 }
 
+export interface DaveningApplicationWithUser extends DaveningApplication {
+  user_email: string;
+  user_full_name: string | null;
+}
+
+export async function getAllApplicationsForAdmin(): Promise<DaveningApplicationWithUser[]> {
+  const result = await sql`
+    SELECT da.*, up.email as user_email, up.full_name as user_full_name
+    FROM davening_applications da
+    JOIN user_profiles up ON up.id = da.user_id
+    ORDER BY da.application_submitted_at DESC NULLS LAST, da.created_at DESC
+  `;
+  return result as DaveningApplicationWithUser[];
+}
+
 export function isApplicationComplete(app: DaveningApplication | null): boolean {
   if (!app || !app.application_submitted_at) return false;
   return !!(

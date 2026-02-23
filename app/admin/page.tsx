@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { format } from 'date-fns';
 import { useUser } from '@stackframe/stack';
@@ -63,6 +63,39 @@ interface AdminStats {
   usersWithBalance: number;
 }
 
+interface ApplicationRecord {
+  id: string;
+  user_id: string;
+  firstname: string;
+  surname: string;
+  date_of_birth: string;
+  contact_number: string;
+  home_address: string;
+  is_student: boolean;
+  student_what: string | null;
+  student_where: string | null;
+  next_of_kin_name: string;
+  next_of_kin_relationship: string;
+  next_of_kin_contact: string;
+  availability_days: string[];
+  cv_url: string | null;
+  portrait_url: string | null;
+  health_condition: boolean;
+  health_condition_description: string | null;
+  mental_health_condition: boolean;
+  mental_health_receiving_help: boolean | null;
+  mental_health_description: string | null;
+  mental_health_need_help: boolean | null;
+  bank_name: string;
+  account_holder_name: string;
+  account_number: string;
+  branch_code: string;
+  account_type: string;
+  application_submitted_at: string | null;
+  user_email: string;
+  user_full_name: string | null;
+}
+
 export default function AdminPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -73,7 +106,7 @@ export default function AdminPage() {
   const [sortBy, setSortBy] = useState<'name' | 'owed' | 'earned'>('owed');
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<
-    'dashboard' | 'users' | 'announcements' | 'shul-times'
+    'dashboard' | 'users' | 'announcements' | 'applications' | 'shul-times'
   >('dashboard');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [paymentAmount, setPaymentAmount] = useState('');
@@ -84,6 +117,10 @@ export default function AdminPage() {
   const [userPayments, setUserPayments] = useState<PaymentRecord[]>([]);
   const [userEarnings, setUserEarnings] = useState<EarningsRecord[]>([]);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const [applications, setApplications] = useState<ApplicationRecord[]>([]);
+  const [isLoadingApplications, setIsLoadingApplications] = useState(false);
+  const [applicationsSearch, setApplicationsSearch] = useState('');
+  const [expandedApplicationId, setExpandedApplicationId] = useState<string | null>(null);
 
   // Clean up the redirect parameter from URL after successful load
   useEffect(() => {
@@ -102,6 +139,12 @@ export default function AdminPage() {
   useEffect(() => {
     filterAndSortUsers();
   }, [users, searchQuery, sortBy]);
+
+  useEffect(() => {
+    if (activeTab === 'applications') {
+      fetchApplications();
+    }
+  }, [activeTab, fetchApplications]);
 
   const checkAuth = async (attempt: number = 1) => {
     const maxAttempts = 5;
@@ -164,6 +207,21 @@ export default function AdminPage() {
       console.error('Error fetching users:', error);
     }
   };
+
+  const fetchApplications = useCallback(async () => {
+    setIsLoadingApplications(true);
+    try {
+      const response = await fetch('/api/admin/applications');
+      if (response.ok) {
+        const data = await response.json();
+        setApplications(data.applications || []);
+      }
+    } catch (error) {
+      console.error('Error fetching applications:', error);
+    } finally {
+      setIsLoadingApplications(false);
+    }
+  }, []);
 
   const filterAndSortUsers = () => {
     let filtered = [...users];
@@ -388,6 +446,16 @@ export default function AdminPage() {
                 }`}
               >
                 Announcements
+              </button>
+              <button
+                onClick={() => setActiveTab('applications')}
+                className={`px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap ${
+                  activeTab === 'applications'
+                    ? 'border-purple-500 text-purple-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Applications
               </button>
               <button
                 onClick={() => setActiveTab('shul-times')}
@@ -699,6 +767,173 @@ export default function AdminPage() {
             {activeTab === 'announcements' && (
               <div>
                 <AnnouncementsManager />
+              </div>
+            )}
+
+            {activeTab === 'applications' && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900">Davening Programme Applications</h3>
+                <p className="text-sm text-gray-600">View all submitted application forms, answers, and documents.</p>
+
+                <div>
+                  <input
+                    type="text"
+                    placeholder="Search by name, email..."
+                    value={applicationsSearch}
+                    onChange={(e) => setApplicationsSearch(e.target.value)}
+                    className="w-full max-w-md px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 mb-4"
+                  />
+                </div>
+
+                {isLoadingApplications ? (
+                  <p className="text-gray-600">Loading applications...</p>
+                ) : (
+                  <div className="space-y-3">
+                    {applications
+                      .filter(
+                        (app) =>
+                          !applicationsSearch ||
+                          `${app.firstname} ${app.surname}`.toLowerCase().includes(applicationsSearch.toLowerCase()) ||
+                          app.user_email?.toLowerCase().includes(applicationsSearch.toLowerCase()) ||
+                          (app.user_full_name || '').toLowerCase().includes(applicationsSearch.toLowerCase())
+                      )
+                      .map((app) => (
+                        <div
+                          key={app.id}
+                          className="border border-gray-200 rounded-lg overflow-hidden"
+                        >
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setExpandedApplicationId(expandedApplicationId === app.id ? null : app.id)
+                            }
+                            className="w-full px-4 py-3 flex justify-between items-center text-left hover:bg-gray-50"
+                          >
+                            <div>
+                              <span className="font-semibold text-gray-900">
+                                {app.firstname} {app.surname}
+                              </span>
+                              <span className="text-gray-500 ml-2">({app.user_email})</span>
+                              {app.application_submitted_at && (
+                                <span className="ml-2 text-xs text-green-600">Submitted</span>
+                              )}
+                            </div>
+                            <svg
+                              className={`w-5 h-5 text-gray-400 transition-transform ${
+                                expandedApplicationId === app.id ? 'rotate-180' : ''
+                              }`}
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+
+                          {expandedApplicationId === app.id && (
+                            <div className="px-4 py-4 bg-gray-50 border-t border-gray-200 space-y-4 text-sm">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div><span className="font-medium text-gray-600">First name:</span> {app.firstname}</div>
+                                <div><span className="font-medium text-gray-600">Surname:</span> {app.surname}</div>
+                                <div><span className="font-medium text-gray-600">Date of birth:</span> {app.date_of_birth}</div>
+                                <div><span className="font-medium text-gray-600">Contact:</span> {app.contact_number}</div>
+                                <div className="md:col-span-2"><span className="font-medium text-gray-600">Email:</span> {app.user_email}</div>
+                                <div className="md:col-span-2"><span className="font-medium text-gray-600">Home address:</span> {app.home_address}</div>
+                                <div><span className="font-medium text-gray-600">Student:</span> {app.is_student ? 'Yes' : 'No'}</div>
+                                {app.is_student && (
+                                  <>
+                                    <div><span className="font-medium text-gray-600">Studying:</span> {app.student_what || '-'}</div>
+                                    <div><span className="font-medium text-gray-600">Institution:</span> {app.student_where || '-'}</div>
+                                  </>
+                                )}
+                                <div><span className="font-medium text-gray-600">Next of kin:</span> {app.next_of_kin_name}</div>
+                                <div><span className="font-medium text-gray-600">Relationship:</span> {app.next_of_kin_relationship}</div>
+                                <div><span className="font-medium text-gray-600">Next of kin contact:</span> {app.next_of_kin_contact}</div>
+                                <div className="md:col-span-2">
+                                  <span className="font-medium text-gray-600">Availability days:</span>{' '}
+                                  {(app.availability_days || []).length > 0 ? app.availability_days.join(', ') : 'None'}
+                                </div>
+                              </div>
+
+                              <div>
+                                <span className="font-medium text-gray-600 block mb-1">Documents:</span>
+                                <div className="flex gap-4 flex-wrap">
+                                  {app.cv_url ? (
+                                    <a
+                                      href={app.cv_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-purple-600 hover:underline"
+                                    >
+                                      View CV
+                                    </a>
+                                  ) : (
+                                    <span className="text-gray-400">No CV uploaded</span>
+                                  )}
+                                  {app.portrait_url ? (
+                                    <a
+                                      href={app.portrait_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-purple-600 hover:underline"
+                                    >
+                                      View portrait
+                                    </a>
+                                  ) : (
+                                    <span className="text-gray-400">No portrait uploaded</span>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="border-t pt-4">
+                                <span className="font-medium text-gray-600 block mb-2">Medical details (confidential)</span>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                  <div><span className="text-gray-600">Health condition:</span> {app.health_condition ? 'Yes' : 'No'}</div>
+                                  {app.health_condition && app.health_condition_description && (
+                                    <div className="md:col-span-2">{app.health_condition_description}</div>
+                                  )}
+                                  <div><span className="text-gray-600">Mental health condition:</span> {app.mental_health_condition ? 'Yes' : 'No'}</div>
+                                  {app.mental_health_condition && (
+                                    <>
+                                      {app.mental_health_receiving_help !== null && (
+                                        <div>Receiving help: {app.mental_health_receiving_help ? 'Yes' : 'No'}</div>
+                                      )}
+                                      {app.mental_health_description && (
+                                        <div className="md:col-span-2">{app.mental_health_description}</div>
+                                      )}
+                                      {app.mental_health_need_help !== null && (
+                                        <div>Needs help: {app.mental_health_need_help ? 'Yes' : 'No'}</div>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="border-t pt-4">
+                                <span className="font-medium text-gray-600 block mb-2">Bank details</span>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                  <div><span className="text-gray-600">Bank:</span> {app.bank_name}</div>
+                                  <div><span className="text-gray-600">Account holder:</span> {app.account_holder_name}</div>
+                                  <div><span className="text-gray-600">Account number:</span> {app.account_number}</div>
+                                  <div><span className="text-gray-600">Branch code:</span> {app.branch_code}</div>
+                                  <div><span className="text-gray-600">Account type:</span> {app.account_type}</div>
+                                </div>
+                              </div>
+
+                              {app.application_submitted_at && (
+                                <p className="text-xs text-gray-500 pt-2">
+                                  Submitted: {format(new Date(app.application_submitted_at), 'PPpp')}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    {applications.length === 0 && !isLoadingApplications && (
+                      <p className="text-gray-500">No applications submitted yet.</p>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
