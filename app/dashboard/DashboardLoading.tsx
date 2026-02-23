@@ -24,10 +24,13 @@ export default function DashboardLoading() {
 
         if (res.ok) {
           const data = await res.json();
-          // Keep _stack_redirect so middleware bypasses - prevents redirect loop when cookies
-          // propagate slowly on some devices (middleware would otherwise send us back to sign-in)
-          const path = data.user?.is_admin ? '/admin' : '/dashboard';
-          window.location.href = `${path}?_stack_redirect=1`;
+          if (data.user?.is_admin) {
+            window.location.href = '/admin?_stack_redirect=1';
+            return;
+          }
+          // Use router.refresh() - full reload caused remount loop; brief delay lets session settle
+          await new Promise((r) => setTimeout(r, 300));
+          router.refresh();
         } else if (attemptNum < maxAttempts) {
           // Retry with exponential backoff
           const delay = Math.min(1000 * Math.pow(1.5, attemptNum), 5000);
