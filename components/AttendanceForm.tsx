@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 
 interface AttendanceFormProps {
@@ -17,6 +18,7 @@ interface AttendanceData {
 }
 
 export default function AttendanceForm({ date, programId, onSuccess }: AttendanceFormProps) {
+  const router = useRouter();
   const [formData, setFormData] = useState<AttendanceData>({
     came_early: false,
     learned_early: false,
@@ -82,7 +84,32 @@ export default function AttendanceForm({ date, programId, onSuccess }: Attendanc
       const data = await response.json();
 
       if (!response.ok) {
-        setMessage({ type: 'error', text: data.error || 'Failed to submit attendance' });
+        // Special handling for Handler programme requirements
+        if (response.status === 403 && data?.code === 'APPLICATION_REQUIRED') {
+          setMessage({
+            type: 'error',
+            text:
+              'You need to complete the Davening Programme application before submitting attendance. Redirecting you to your profile...',
+          });
+          // Give the user a brief moment to read the message, then redirect
+          setTimeout(() => {
+            router.push('/profile?handlerForm=application');
+          }, 1500);
+        } else if (response.status === 403 && data?.code === 'TERMS_REQUIRED') {
+          setMessage({
+            type: 'error',
+            text:
+              'You need to accept this month’s programme terms before submitting attendance. Redirecting you to your profile...',
+          });
+          setTimeout(() => {
+            router.push('/profile?handlerForm=terms');
+          }, 1500);
+        } else {
+          setMessage({
+            type: 'error',
+            text: data.error || 'Failed to submit attendance',
+          });
+        }
         setIsSubmitting(false);
         return;
       }

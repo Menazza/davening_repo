@@ -45,10 +45,13 @@ export async function POST(request: NextRequest) {
   try {
     const ext = type === 'application/pdf' ? 'pdf' : type.replace('image/', '');
     const filename = `davening-application/${kind}-${Date.now()}.${ext}`;
+
+    // Your current Blob store requires public access
     const blob = await put(filename, file, {
       access: 'public',
       addRandomSuffix: true,
     });
+
     return NextResponse.json({ url: blob.url });
   } catch (err: any) {
     console.error('Upload error:', err);

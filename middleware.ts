@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { stackServerApp } from './stack/server';
+
+const SESSION_COOKIE_NAME = 'session_user_id';
 
 export async function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
@@ -10,19 +11,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Public routes - Stack Auth routes and public pages
-  // Include all Stack Auth related paths including email verification
+  // Public routes - login and public pages
   const publicRoutes = [
-    '/handler',
     '/',
     '/login',
+    '/register',
     '/test-auth',
   ];
-  
-  // Also allow any Stack Auth callback/verification routes
-  if (pathname.includes('/verify') || pathname.includes('/auth/') || pathname.includes('/callback')) {
-    return NextResponse.next();
-  }
   
   const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
 
@@ -38,23 +33,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check authentication for protected page routes only
-  // Use a lightweight check - just verify user exists, don't fetch full profile
-  try {
-    const user = await stackServerApp.getUser({ or: 'return-null' });
-    
-    if (!user) {
-      console.log(`[Middleware] No user found for ${pathname}, redirecting to sign-in`);
-      // Redirect to sign-in if not authenticated
-      return NextResponse.redirect(new URL('/handler/sign-in', request.url));
-    }
-    
-    console.log(`[Middleware] User authenticated for ${pathname}`);
-  } catch (error: any) {
-    // Log error for debugging
-    console.error('[Middleware] Auth error:', error?.message || 'Unknown error', 'for path:', pathname);
-    // If there's an error getting user, redirect to sign-in
-    return NextResponse.redirect(new URL('/handler/sign-in', request.url));
+  // Check authentication for protected page routes only via session cookie
+  const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+
+  if (!sessionCookie) {
+    return NextResponse.redirect(new URL('/login', request.url));
   }
 
   return NextResponse.next();
@@ -62,13 +45,10 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match page routes only, excluding:
-     * - API routes (handled separately)
-     * - Static files (_next/static, _next/image, favicon.ico)
-     * - Auth handler routes
-     */
-    '/((?!api|_next/static|_next/image|favicon.ico|handler).*)',
+    // Match page routes only, excluding:
+    // - API routes (handled separately)
+    // - Static files (_next/static, _next/image, favicon.ico)
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 };
 

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser } from '@stackframe/stack';
 import Navigation from '@/components/Navigation';
 import { POPIA_STATEMENT, PROGRAMME_TERMS } from './terms-content';
 
@@ -27,6 +26,10 @@ interface User {
   email: string;
   full_name?: string;
   is_admin: boolean;
+  bank_name?: string;
+  account_number?: string;
+  branch_code?: string;
+  account_type?: string;
 }
 
 interface Application {
@@ -97,7 +100,6 @@ export default function ApplicationClient({
   alreadySubmitted,
 }: ApplicationClientProps) {
   const router = useRouter();
-  const stackUser = useUser();
   const [form, setForm] = useState<Application>(() => {
     const base = { ...emptyApp };
     if (initialApplication) {
@@ -130,7 +132,29 @@ export default function ApplicationClient({
         account_type: initialApplication.account_type || '',
       });
     }
+    // If there's no existing application, prefill some fields from profile
+    if (!initialApplication) {
+      base.account_holder_name = user.full_name || '';
+      if (user.bank_name) {
+        base.bank_name = user.bank_name;
+      }
+      if (user.account_number) {
+        base.account_number = user.account_number;
+      }
+      if (user.branch_code) {
+        base.branch_code = user.branch_code;
+      }
+      if (user.account_type) {
+        base.account_type = user.account_type;
+      }
+    }
     return base;
+  });
+  const [fullName, setFullName] = useState(() => {
+    if (initialApplication && (initialApplication.firstname || initialApplication.surname)) {
+      return `${initialApplication.firstname || ''} ${initialApplication.surname || ''}`.trim();
+    }
+    return user.full_name || '';
   });
   const [popiaConsent, setPopiaConsent] = useState(false);
   const [termsConsent, setTermsConsent] = useState(false);
@@ -145,13 +169,12 @@ export default function ApplicationClient({
 
   useEffect(() => {
     if (alreadySubmitted) {
-      router.replace('/profile?enroll=true');
+      router.replace('/profile?handlerForm=terms');
     }
   }, [alreadySubmitted, router]);
 
   const handleLogout = async () => {
     try {
-      if (stackUser) await stackUser.signOut();
       await fetch('/api/auth/logout', { method: 'POST' });
       window.location.href = '/';
     } catch {
@@ -196,9 +219,12 @@ export default function ApplicationClient({
     e.preventDefault();
     setMessage(null);
 
+    const trimmedFullName = fullName.trim();
+    const [firstNamePart, ...rest] = trimmedFullName.split(' ');
+    const surnamePart = rest.join(' ');
+
     const required = [
-      form.firstname,
-      form.surname,
+      trimmedFullName,
       form.date_of_birth,
       form.contact_number,
       form.home_address,
@@ -229,6 +255,9 @@ export default function ApplicationClient({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...form,
+          firstname: firstNamePart,
+          surname: surnamePart,
+          full_name: trimmedFullName,
           bank_name: bankName,
           submit: true,
           popia_consent_at: new Date().toISOString(),
@@ -249,11 +278,21 @@ export default function ApplicationClient({
     setSaving(true);
     setMessage(null);
     try {
+      const trimmedFullName = fullName.trim();
+      const [firstNamePart, ...rest] = trimmedFullName.split(' ');
+      const surnamePart = rest.join(' ');
       const bankName = form.bank_name === 'Other' ? bankOther : form.bank_name;
       const res = await fetch('/api/application', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, bank_name: bankName, submit: false }),
+        body: JSON.stringify({
+          ...form,
+          firstname: firstNamePart || form.firstname,
+          surname: surnamePart || form.surname,
+          full_name: trimmedFullName || undefined,
+          bank_name: bankName,
+          submit: false,
+        }),
       });
       if (!res.ok) throw new Error((await res.json()).error || 'Failed to save');
       setMessage({ type: 'success', text: 'Draft saved.' });
@@ -296,27 +335,15 @@ export default function ApplicationClient({
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Personal details</h2>
             <p className="text-sm text-gray-500 mb-4">* Indicates required</p>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">First name *</label>
-                <input
-                  type="text"
-                  required
-                  value={form.firstname}
-                  onChange={(e) => setForm((p) => ({ ...p, firstname: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Surname *</label>
-                <input
-                  type="text"
-                  required
-                  value={form.surname}
-                  onChange={(e) => setForm((p) => ({ ...p, surname: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+            <div className="mt-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Full name *</label>
+              <input
+                type="text"
+                required
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+              />
             </div>
 
             <div className="mt-4">

@@ -25,12 +25,19 @@ export default function DashboardLoading() {
         if (res.ok) {
           const data = await res.json();
           if (data.user?.is_admin) {
+            sessionStorage.removeItem('dashboard_reload_count');
             window.location.href = '/admin?_stack_redirect=1';
             return;
           }
-          // Use router.refresh() - full reload caused remount loop; brief delay lets session settle
-          await new Promise((r) => setTimeout(r, 300));
-          router.refresh();
+          const reloadCount = parseInt(sessionStorage.getItem('dashboard_reload_count') || '0', 10);
+          if (reloadCount >= 2) {
+            sessionStorage.removeItem('dashboard_reload_count');
+            setStatus('error');
+            return;
+          }
+          sessionStorage.setItem('dashboard_reload_count', String(reloadCount + 1));
+          await new Promise((r) => setTimeout(r, 500));
+          window.location.href = `/dashboard?_stack_redirect=1&_t=${Date.now()}`;
         } else if (attemptNum < maxAttempts) {
           // Retry with exponential backoff
           const delay = Math.min(1000 * Math.pow(1.5, attemptNum), 5000);

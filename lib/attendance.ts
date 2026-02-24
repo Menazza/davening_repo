@@ -317,6 +317,8 @@ export async function getAllUsersEarnings(): Promise<
     user_id: string;
     email: string;
     full_name: string | null;
+    is_admin: boolean;
+    admin_type: string | null;
     total_earned: number;
     total_paid: number;
     total_owed: number;
@@ -328,6 +330,8 @@ export async function getAllUsersEarnings(): Promise<
       up.id as user_id,
       up.email,
       up.full_name,
+      up.is_admin,
+      up.admin_type,
       COALESCE((
         SELECT SUM(amount_earned)
         FROM earnings
@@ -346,6 +350,8 @@ export async function getAllUsersEarnings(): Promise<
     user_id: row.user_id,
     email: row.email,
     full_name: row.full_name,
+    is_admin: row.is_admin,
+    admin_type: row.admin_type,
     total_earned: Number(row.total_earned || 0),
     total_paid: Number(row.total_paid || 0),
     total_owed: Number(row.total_earned || 0) - Number(row.total_paid || 0),

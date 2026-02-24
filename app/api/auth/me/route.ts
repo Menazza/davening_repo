@@ -1,39 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { stackServerApp } from '@/stack/server';
-import { getUserProfile, createUserProfile } from '@/lib/auth';
+import { getAuthenticatedUser } from '@/lib/server-auth';
 
 export async function GET(request: NextRequest) {
   try {
-    // Get authenticated user from Stack Auth
-    const user = await stackServerApp.getUser({ or: 'throw' });
-    
-    if (!user) {
+    const user = await getAuthenticatedUser();
+    return NextResponse.json({ user });
+  } catch (error: any) {
+    if (error?.message === 'Not authenticated') {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    // Get or create user profile in our database
-    let profile = await getUserProfile(user.id);
-    
-    if (!profile) {
-      // Create user profile if it doesn't exist
-      profile = await createUserProfile(
-        user.id,
-        user.primaryEmail || '',
-        user.displayName || undefined
-      );
-    } else if (user.displayName && !profile.full_name) {
-      // If Stack Auth has a displayName but our DB doesn't, sync it
-      const { updateUserProfile } = await import('@/lib/auth');
-      const updated = await updateUserProfile(user.id, {
-        full_name: user.displayName
-      });
-      if (updated) {
-        profile = updated;
-      }
-    }
-
-    return NextResponse.json({ user: profile });
-  } catch (error: any) {
     console.error('Get user error:', error);
     return NextResponse.json(
       { error: 'Failed to get user' },
@@ -41,3 +17,4 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+

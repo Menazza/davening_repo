@@ -23,14 +23,22 @@ export async function POST(request: NextRequest) {
         const application = await getApplicationByUserId(user.id);
         if (!isApplicationComplete(application)) {
           return NextResponse.json(
-            { error: 'You must complete the Davening Programme application before submitting attendance. Please complete your application first.' },
+            {
+              error:
+                'You must complete the Davening Programme application before submitting attendance.',
+              code: 'APPLICATION_REQUIRED',
+            },
             { status: 403 }
           );
         }
         const acceptedTerms = await hasAcceptedTermsThisMonth(user.id);
         if (!acceptedTerms) {
           return NextResponse.json(
-            { error: 'You must accept the Programme terms for this month before submitting attendance. Please visit your dashboard to accept the terms.' },
+            {
+              error:
+                'You must accept the Programme terms for this month before submitting attendance.',
+              code: 'TERMS_REQUIRED',
+            },
             { status: 403 }
           );
         }

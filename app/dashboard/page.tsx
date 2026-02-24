@@ -1,18 +1,13 @@
 import { redirect } from 'next/navigation';
 import { getAuthenticatedUser } from '@/lib/server-auth';
+
+export const dynamic = 'force-dynamic';
 import { getActiveAnnouncements } from '@/lib/admin';
 import { getUserProgramsWithDetails } from '@/lib/user-programs';
-import { getApplicationByUserId, isApplicationComplete } from '@/lib/application';
 import { hasAcceptedTermsThisMonth } from '@/lib/terms';
 import DashboardClient from './DashboardClient';
-import DashboardLoading from './DashboardLoading';
 
-export default async function DashboardPage({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | string[] | undefined };
-}) {
-  const isStackRedirect = searchParams._stack_redirect === '1';
+export default async function DashboardPage() {
   let user;
   let announcements = [];
 
@@ -23,12 +18,6 @@ export default async function DashboardPage({
       redirect('/admin');
     }
 
-    // New users must complete the Davening Programme application first
-    const application = await getApplicationByUserId(user.id).catch(() => null);
-    if (!isApplicationComplete(application)) {
-      redirect('/application');
-    }
-
     const userPrograms = await getUserProgramsWithDetails(user.id).catch(() => []);
     if (userPrograms.length === 0) {
       redirect('/profile?enroll=true');
@@ -36,10 +25,7 @@ export default async function DashboardPage({
 
     announcements = await getActiveAnnouncements().catch(() => []);
   } catch (error) {
-    if (isStackRedirect) {
-      return <DashboardLoading />;
-    }
-    redirect('/handler/sign-in');
+    redirect('/login');
   }
 
   const announcementsData = announcements.map((a: any) => ({

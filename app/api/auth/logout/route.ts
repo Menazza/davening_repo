@@ -1,10 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { stackServerApp } from '@/stack/server';
+
+const SESSION_COOKIE_NAME = 'session_user_id';
 
 export async function POST(request: NextRequest) {
   try {
-    await stackServerApp.signOut();
-    return NextResponse.json({ success: true });
+    const response = NextResponse.json({ success: true });
+
+    response.cookies.set(SESSION_COOKIE_NAME, '', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 0,
+    });
+
+    return response;
   } catch (error: any) {
     console.error('Logout error:', error);
     return NextResponse.json(
@@ -13,3 +23,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+

@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
-import { useUser } from '@stackframe/stack';
 import { useRouter } from 'next/navigation';
 
 interface Announcement {
@@ -16,38 +15,37 @@ interface Announcement {
 export default function Home() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [hasCheckedRedirect, setHasCheckedRedirect] = useState(false);
-  const user = useUser();
   const router = useRouter();
 
   useEffect(() => {
-    // If user is signed in, redirect appropriately
-    if (user && !hasCheckedRedirect) {
-      setHasCheckedRedirect(true);
-      // Check if user is admin and redirect accordingly
-      fetch('/api/auth/me')
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.user?.is_admin) {
-            window.location.href = '/admin';
-          } else {
-            window.location.href = '/dashboard';
-          }
-        })
-        .catch(() => {
-          // If we can't check, default to dashboard
-          window.location.href = '/dashboard';
-        });
-      return;
-    }
+    if (hasCheckedRedirect) return;
 
-    // Only fetch announcements if user is not logged in
-    if (!user && !hasCheckedRedirect) {
-      fetch('/api/announcements')
-        .then((res) => res.json())
-        .then((data) => setAnnouncements(data.announcements || []))
-        .catch((err) => console.error('Error fetching announcements:', err));
-    }
-  }, [user, router, hasCheckedRedirect]);
+    // Check session via our own auth endpoint
+    fetch('/api/auth/me', { credentials: 'include' })
+      .then(async (res) => {
+        if (!res.ok) {
+          // Not logged in, show announcements
+          setHasCheckedRedirect(true);
+          const annRes = await fetch('/api/announcements');
+          const data = await annRes.json();
+          setAnnouncements(data.announcements || []);
+          return;
+        }
+
+        const data = await res.json();
+        setHasCheckedRedirect(true);
+
+        if (data.user?.is_admin) {
+          router.push('/admin');
+        } else {
+          router.push('/dashboard');
+        }
+      })
+      .catch((err) => {
+        console.error('Error checking auth:', err);
+        setHasCheckedRedirect(true);
+      });
+  }, [router, hasCheckedRedirect]);
 
   return (
     <div className="min-h-screen bg-blue-50">
@@ -93,7 +91,7 @@ export default function Home() {
 
             <div className="space-y-3 sm:space-y-4">
               <Link
-                href="/handler/sign-in"
+                href="/login"
                 className="flex items-center justify-center w-full bg-blue-600 text-white text-center py-4 sm:py-5 px-6 rounded-xl font-semibold text-base sm:text-lg hover:bg-blue-700 active:bg-blue-800 transition-all shadow-lg hover:shadow-xl min-h-[56px] touch-manipulation"
               >
                 <svg className="w-5 h-5 sm:w-6 sm:h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -102,7 +100,7 @@ export default function Home() {
                 Sign In
               </Link>
               <Link
-                href="/handler/sign-up"
+                href="/register"
                 className="flex items-center justify-center w-full bg-white text-blue-600 text-center py-4 sm:py-5 px-6 rounded-xl font-semibold text-base sm:text-lg border-2 border-blue-600 hover:bg-blue-50 active:bg-blue-100 transition-all shadow-md hover:shadow-lg min-h-[56px] touch-manipulation"
               >
                 <svg className="w-5 h-5 sm:w-6 sm:h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser } from '@stackframe/stack';
 import Navigation from '@/components/Navigation';
 import { formatProgramName } from '@/lib/format-program-name';
 
@@ -28,6 +27,14 @@ interface Program {
   description: string | null;
 }
 
+interface HandlerStatus {
+  hasHandlerProgram: boolean;
+  applicationComplete: boolean;
+  applicationSubmittedAt: string | null;
+  acceptedTermsThisMonth: boolean;
+  latestTermsAcceptedAt: string | null;
+}
+
 export default function ProfileClient({ user: initialUser }: ProfileClientProps) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
@@ -38,6 +45,7 @@ export default function ProfileClient({ user: initialUser }: ProfileClientProps)
   const [isLoadingPrograms, setIsLoadingPrograms] = useState(true);
   const [isProgramEnrollmentOpen, setIsProgramEnrollmentOpen] = useState(false);
   const [isPersonalInfoOpen, setIsPersonalInfoOpen] = useState(false);
+  const [handlerStatus, setHandlerStatus] = useState<HandlerStatus | null>(null);
   // Determine if existing bank_name is in our list or is "Other"
   const bankOptions = [
     'Standard Bank',
@@ -75,18 +83,43 @@ export default function ProfileClient({ user: initialUser }: ProfileClientProps)
 
   useEffect(() => {
     loadPrograms();
-    
-    // Check if user was redirected here to enroll
+    loadHandlerStatus();
+
+    // Check if user was redirected here to enroll or to fix Handler requirements
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       if (params.get('enroll') === 'true') {
-        setMessage({ 
-          type: 'error', 
-          text: 'Please enroll in at least one program before accessing other features.' 
+        setMessage({
+          type: 'error',
+          text: 'Please enroll in at least one program before accessing other features.',
+        });
+        setIsProgramEnrollmentOpen(true);
+      }
+      const handlerForm = params.get('handlerForm');
+      if (handlerForm === 'application') {
+        setMessage({
+          type: 'error',
+          text: 'You need to complete the Davening Programme application before submitting attendance.',
+        });
+      } else if (handlerForm === 'terms') {
+        setMessage({
+          type: 'error',
+          text: 'You need to accept this month’s programme terms before submitting attendance.',
         });
       }
     }
   }, []);
+
+  const loadHandlerStatus = async () => {
+    try {
+      const res = await fetch('/api/handler-status', { cache: 'no-store' });
+      if (!res.ok) return;
+      const data = await res.json();
+      setHandlerStatus(data);
+    } catch (error) {
+      console.error('Error loading Handler status:', error);
+    }
+  };
 
   const loadPrograms = async () => {
     try {
@@ -174,17 +207,9 @@ export default function ProfileClient({ user: initialUser }: ProfileClientProps)
     }
   };
 
-  const stackUser = useUser();
-  
   const handleLogout = async () => {
     try {
-      // Sign out on client side first
-      if (stackUser) {
-        await stackUser.signOut();
-      }
-      // Also call the API to ensure server-side logout
       await fetch('/api/auth/logout', { method: 'POST' });
-      // Force hard redirect to clear all state
       window.location.href = '/';
     } catch (error) {
       console.error('Logout error:', error);
@@ -211,6 +236,101 @@ export default function ProfileClient({ user: initialUser }: ProfileClientProps)
             {message.text}
           </div>
         )}
+
+        {/* Handler Programme Status */}
+        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">
+            Davening Programme (Rabbi Hendler)
+          </h3>
+          {!handlerStatus ? (
+            <p className="text-sm text-gray-600">Checking your programme status...</p>
+          ) : !handlerStatus.hasHandlerProgram ? (
+            <div className="space-y-2">
+              <p className="text-sm text-gray-700">
+                You are not currently enrolled in the Davening Programme.
+              </p>
+              <p className="text-sm text-gray-600">
+                To join, open the Program Enrollment section below and add the Handler programme.
+              </p>
+            </div>
+          ) : !handlerStatus.applicationComplete ? (
+            <div className="space-y-3">
+              <div className="p-3 rounded-md bg-red-50 border border-red-200">
+                <p className="text-sm text-red-800 font-semibold">
+                  Your Davening Programme application is not complete.
+                </p>
+                <p className="text-xs text-red-700 mt-1">
+                  You must complete the application before you can submit attendance for the programme.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => router.push('/application')}
+                className="w-full bg-blue-600 text-white py-2.5 rounded-md text-sm font-semibold hover:bg-blue-700 transition-colors"
+              >
+                Open Application Form
+              </button>
+            </div>
+          ) : !handlerStatus.acceptedTermsThisMonth ? (
+            <div className="space-y-3">
+              <div className="p-3 rounded-md bg-yellow-50 border border-yellow-200">
+                <p className="text-sm text-yellow-800 font-semibold">
+                  You need to accept this month’s programme terms.
+                </p>
+                {handlerStatus.latestTermsAcceptedAt && (
+                  <p className="text-xs text-yellow-700 mt-1">
+                    Last accepted:{' '}
+                    {new Date(handlerStatus.latestTermsAcceptedAt).toLocaleString()}
+                  </p>
+                )}
+                <p className="text-xs text-yellow-700 mt-1">
+                  Accepting the terms takes just a moment and is required once per calendar month.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const res = await fetch('/api/terms', { method: 'POST' });
+                    if (!res.ok) {
+                      const data = await res.json();
+                      setMessage({
+                        type: 'error',
+                        text: data.error || 'Failed to record terms acceptance',
+                      });
+                      return;
+                    }
+                    setMessage({
+                      type: 'success',
+                      text: 'Programme terms accepted for this month.',
+                    });
+                    await loadHandlerStatus();
+                  } catch (error) {
+                    setMessage({
+                      type: 'error',
+                      text: 'Failed to record terms acceptance. Please try again.',
+                    });
+                  }
+                }}
+                className="w-full bg-blue-600 text-white py-2.5 rounded-md text-sm font-semibold hover:bg-blue-700 transition-colors"
+              >
+                Accept This Month’s Terms
+              </button>
+            </div>
+          ) : (
+            <div className="p-3 rounded-md bg-green-50 border border-green-200">
+              <p className="text-sm text-green-800 font-semibold">
+                You are fully set up for the Davening Programme this month.
+              </p>
+              {handlerStatus.latestTermsAcceptedAt && (
+                <p className="text-xs text-green-700 mt-1">
+                  Latest terms accepted:{' '}
+                  {new Date(handlerStatus.latestTermsAcceptedAt).toLocaleString()}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Program Enrollment Section */}
         <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">

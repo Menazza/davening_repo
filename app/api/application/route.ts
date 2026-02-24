@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/server-auth';
 import { getApplicationByUserId, upsertApplication, DaveningApplication } from '@/lib/application';
+import { updateUserProfile } from '@/lib/auth';
 
 export async function GET() {
   try {
@@ -55,6 +56,28 @@ export async function PUT(request: NextRequest) {
     }
 
     const application = await upsertApplication(user.id, data);
+
+    // Keep basic profile fields in sync so users don't have to enter data twice
+    try {
+      const fullName: string | undefined =
+        typeof body.full_name === 'string' && body.full_name.trim()
+          ? body.full_name.trim()
+          : body.firstname && body.surname
+          ? `${body.firstname} ${body.surname}`.trim()
+          : undefined;
+
+      await updateUserProfile(user.id, {
+        full_name: fullName,
+        bank_name: body.bank_name,
+        account_number: body.account_number,
+        branch_code: body.branch_code,
+        account_type: body.account_type,
+      });
+    } catch (syncError) {
+      console.error('Profile sync from application failed:', syncError);
+      // Do not fail the request if profile sync fails
+    }
+
     return NextResponse.json({ application });
   } catch (error: any) {
     console.error('Update application error:', error);
