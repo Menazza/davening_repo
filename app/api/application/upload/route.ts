@@ -12,9 +12,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  // Allow either default or custom blob env names (e.g. BLOB2_READ_WRITE_TOKEN)
+  const hasBlobToken =
+    !!process.env.BLOB_READ_WRITE_TOKEN ||
+    !!process.env.BLOB2_READ_WRITE_TOKEN ||
+    Object.keys(process.env).some((key) =>
+      key.endsWith('_READ_WRITE_TOKEN')
+    );
+
+  if (!hasBlobToken) {
     return NextResponse.json(
-      { error: 'File upload is not configured. Please set BLOB_READ_WRITE_TOKEN.' },
+      { error: 'File upload is not configured. Please connect a Vercel Blob store to this project.' },
       { status: 503 }
     );
   }
@@ -46,9 +54,9 @@ export async function POST(request: NextRequest) {
     const ext = type === 'application/pdf' ? 'pdf' : type.replace('image/', '');
     const filename = `davening-application/${kind}-${Date.now()}.${ext}`;
 
-    // Your current Blob store requires public access
+    // Use the store's configured (private) access mode
     const blob = await put(filename, file, {
-      access: 'public',
+      // access: 'private' is implied when using a private store token
       addRandomSuffix: true,
     });
 
