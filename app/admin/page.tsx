@@ -21,6 +21,7 @@ interface UserEarnings {
   total_earned: number;
   total_paid: number;
   total_owed: number;
+  application_status?: 'not_started' | 'incomplete' | 'complete';
 }
 
 interface UserProfile {
@@ -609,6 +610,9 @@ export default function AdminPage() {
                             Name / Email
                           </th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Form Status
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Total Earned
                           </th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -631,15 +635,34 @@ export default function AdminPage() {
                               </div>
                               <div className="text-sm text-gray-500">{u.email}</div>
                             </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                              {u.application_status === 'complete' && (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                  Form complete
+                                </span>
+                              )}
+                              {u.application_status === 'incomplete' && (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                  Form incomplete
+                                </span>
+                              )}
+                              {!u.application_status || u.application_status === 'not_started' ? (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                  No form
+                                </span>
+                              ) : null}
+                            </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                               R{u.total_earned.toFixed(2)}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
                               R{u.total_paid.toFixed(2)}
                             </td>
-                            <td className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${
-                              u.total_owed > 0 ? 'text-orange-600' : 'text-gray-500'
-                            }`}>
+                            <td
+                              className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${
+                                u.total_owed > 0 ? 'text-orange-600' : 'text-gray-500'
+                              }`}
+                            >
                               R{u.total_owed.toFixed(2)}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm">
