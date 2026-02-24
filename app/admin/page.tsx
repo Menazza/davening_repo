@@ -106,7 +106,7 @@ export default function AdminPage() {
   const [sortBy, setSortBy] = useState<'name' | 'owed' | 'earned'>('owed');
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<
-    'dashboard' | 'users' | 'announcements' | 'applications' | 'shul-times'
+    'dashboard' | 'users' | 'announcements' | 'applications' | 'application-results' | 'shul-times'
   >('dashboard');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [paymentAmount, setPaymentAmount] = useState('');
@@ -121,6 +121,8 @@ export default function AdminPage() {
   const [isLoadingApplications, setIsLoadingApplications] = useState(false);
   const [applicationsSearch, setApplicationsSearch] = useState('');
   const [expandedApplicationId, setExpandedApplicationId] = useState<string | null>(null);
+  const [expandedResultId, setExpandedResultId] = useState<string | null>(null);
+  const [resultsSearch, setResultsSearch] = useState('');
 
   // Clean up the redirect parameter from URL after successful load
   useEffect(() => {
@@ -156,7 +158,7 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
-    if (activeTab === 'applications') {
+    if (activeTab === 'applications' || activeTab === 'application-results') {
       fetchApplications();
     }
   }, [activeTab, fetchApplications]);
@@ -368,6 +370,9 @@ export default function AdminPage() {
     setUserEarnings([]);
   };
 
+  const getDownloadUrl = (fileUrl: string, filename: string) =>
+    `/api/admin/download-file?url=${encodeURIComponent(fileUrl)}&filename=${encodeURIComponent(filename)}`;
+
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
@@ -376,6 +381,16 @@ export default function AdminPage() {
       console.error('Logout error:', error);
       // Even if there's an error, redirect to home
       window.location.href = '/';
+    }
+  };
+
+  const handleDownloadOwedCsv = () => {
+    try {
+      // Let the browser handle the file download via CSV response headers
+      window.location.href = '/api/admin/users?format=csv';
+    } catch (error) {
+      console.error('Failed to start download:', error);
+      alert('Could not start download. Please try again.');
     }
   };
 
@@ -448,6 +463,16 @@ export default function AdminPage() {
                 }`}
               >
                 Applications
+              </button>
+              <button
+                onClick={() => setActiveTab('application-results')}
+                className={`px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap ${
+                  activeTab === 'application-results'
+                    ? 'border-purple-500 text-purple-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Application results
               </button>
               <button
                 onClick={() => setActiveTab('shul-times')}
@@ -576,8 +601,8 @@ export default function AdminPage() {
 
             {activeTab === 'users' && (
               <div className="space-y-6">
-                {/* Search and Sort */}
-                <div className="flex flex-col sm:flex-row gap-4">
+                {/* Search, Sort, and Export */}
+                <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
                   <div className="flex-1">
                     <input
                       type="text"
@@ -587,15 +612,24 @@ export default function AdminPage() {
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     />
                   </div>
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value as 'name' | 'owed' | 'earned')}
-                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  >
-                    <option value="owed">Sort by: Balance Owed</option>
-                    <option value="earned">Sort by: Total Earned</option>
-                    <option value="name">Sort by: Name</option>
-                  </select>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value as 'name' | 'owed' | 'earned')}
+                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    >
+                      <option value="owed">Sort by: Balance Owed</option>
+                      <option value="earned">Sort by: Total Earned</option>
+                      <option value="name">Sort by: Name</option>
+                    </select>
+                    <button
+                      type="button"
+                      onClick={handleDownloadOwedCsv}
+                      className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700 whitespace-nowrap"
+                    >
+                      Download Owed (Excel/CSV)
+                    </button>
+                  </div>
                 </div>
 
                 <div>
@@ -871,28 +905,44 @@ export default function AdminPage() {
 
                               <div>
                                 <span className="font-medium text-gray-600 block mb-1">Documents:</span>
-                                <div className="flex gap-4 flex-wrap">
+                                <div className="flex gap-4 flex-wrap items-center">
                                   {app.cv_url ? (
-                                    <a
-                                      href={app.cv_url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-purple-600 hover:underline"
-                                    >
-                                      View CV
-                                    </a>
+                                    <>
+                                      <a
+                                        href={app.cv_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-purple-600 hover:underline"
+                                      >
+                                        View CV
+                                      </a>
+                                      <a
+                                        href={getDownloadUrl(app.cv_url, `CV-${app.surname}-${app.firstname}.pdf`)}
+                                        className="text-green-600 hover:underline"
+                                      >
+                                        Download CV
+                                      </a>
+                                    </>
                                   ) : (
                                     <span className="text-gray-400">No CV uploaded</span>
                                   )}
                                   {app.portrait_url ? (
-                                    <a
-                                      href={app.portrait_url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-purple-600 hover:underline"
-                                    >
-                                      View portrait
-                                    </a>
+                                    <>
+                                      <a
+                                        href={app.portrait_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-purple-600 hover:underline"
+                                      >
+                                        View portrait
+                                      </a>
+                                      <a
+                                        href={getDownloadUrl(app.portrait_url, `Portrait-${app.surname}-${app.firstname}.jpg`)}
+                                        className="text-green-600 hover:underline"
+                                      >
+                                        Download portrait
+                                      </a>
+                                    </>
                                   ) : (
                                     <span className="text-gray-400">No portrait uploaded</span>
                                   )}
@@ -945,6 +995,221 @@ export default function AdminPage() {
                       ))}
                     {applications.length === 0 && !isLoadingApplications && (
                       <p className="text-gray-500">No applications submitted yet.</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'application-results' && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900">Application results (form & test answers)</h3>
+                <p className="text-sm text-gray-600">
+                  View form answers including health, need for assistance, and download CV and profile photos.
+                </p>
+
+                <div>
+                  <input
+                    type="text"
+                    placeholder="Search by name, email..."
+                    value={resultsSearch}
+                    onChange={(e) => setResultsSearch(e.target.value)}
+                    className="w-full max-w-md px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 mb-4"
+                  />
+                </div>
+
+                {isLoadingApplications ? (
+                  <p className="text-gray-600">Loading application results...</p>
+                ) : (
+                  <div className="space-y-3">
+                    {applications
+                      .filter(
+                        (app) =>
+                          !resultsSearch ||
+                          `${app.firstname} ${app.surname}`.toLowerCase().includes(resultsSearch.toLowerCase()) ||
+                          app.user_email?.toLowerCase().includes(resultsSearch.toLowerCase()) ||
+                          (app.user_full_name || '').toLowerCase().includes(resultsSearch.toLowerCase())
+                      )
+                      .map((app) => (
+                        <div
+                          key={app.id}
+                          className="border border-gray-200 rounded-lg overflow-hidden"
+                        >
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setExpandedResultId(expandedResultId === app.id ? null : app.id)
+                            }
+                            className="w-full px-4 py-3 flex justify-between items-center text-left hover:bg-gray-50"
+                          >
+                            <div className="flex items-center gap-3">
+                              {app.portrait_url ? (
+                                <img
+                                  src={app.portrait_url}
+                                  alt=""
+                                  className="w-10 h-10 rounded-full object-cover border border-gray-200"
+                                />
+                              ) : (
+                                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-sm">
+                                  {app.firstname?.[0]}{app.surname?.[0]}
+                                </div>
+                              )}
+                              <div>
+                                <span className="font-semibold text-gray-900">
+                                  {app.firstname} {app.surname}
+                                </span>
+                                <span className="text-gray-500 ml-2">({app.user_email})</span>
+                                {app.application_submitted_at && (
+                                  <span className="ml-2 text-xs text-green-600">Submitted</span>
+                                )}
+                              </div>
+                            </div>
+                            <svg
+                              className={`w-5 h-5 text-gray-400 transition-transform ${
+                                expandedResultId === app.id ? 'rotate-180' : ''
+                              }`}
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+
+                          {expandedResultId === app.id && (
+                            <div className="px-4 py-4 bg-gray-50 border-t border-gray-200 space-y-5 text-sm">
+                              <div>
+                                <h4 className="font-semibold text-gray-900 mb-2">Contact & basic info</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                  <div><span className="text-gray-600">Name:</span> {app.firstname} {app.surname}</div>
+                                  <div><span className="text-gray-600">Email:</span> {app.user_email}</div>
+                                  <div><span className="text-gray-600">Contact:</span> {app.contact_number}</div>
+                                  <div><span className="text-gray-600">Date of birth:</span> {app.date_of_birth}</div>
+                                  <div className="md:col-span-2"><span className="text-gray-600">Address:</span> {app.home_address}</div>
+                                  <div><span className="text-gray-600">Next of kin:</span> {app.next_of_kin_name} ({app.next_of_kin_relationship})</div>
+                                  <div><span className="text-gray-600">Availability:</span> {(app.availability_days || []).length > 0 ? app.availability_days.join(', ') : 'None'}</div>
+                                </div>
+                              </div>
+
+                              <div className="border-t pt-4">
+                                <h4 className="font-semibold text-gray-900 mb-2">Health & assistance</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  <div>
+                                    <span className="text-gray-600">Physical health condition:</span>{' '}
+                                    <span className={app.health_condition ? 'text-amber-700 font-medium' : 'text-gray-700'}>
+                                      {app.health_condition ? 'Yes' : 'No'}
+                                    </span>
+                                    {app.health_condition && app.health_condition_description && (
+                                      <p className="mt-1 text-gray-700 bg-white p-2 rounded border border-gray-200">
+                                        {app.health_condition_description}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-600">Mental health condition:</span>{' '}
+                                    <span className={app.mental_health_condition ? 'text-amber-700 font-medium' : 'text-gray-700'}>
+                                      {app.mental_health_condition ? 'Yes' : 'No'}
+                                    </span>
+                                    {app.mental_health_condition && (
+                                      <>
+                                        {app.mental_health_receiving_help !== null && (
+                                          <div className="mt-1">
+                                            <span className="text-gray-600">Receiving help:</span>{' '}
+                                            {app.mental_health_receiving_help ? 'Yes' : 'No'}
+                                          </div>
+                                        )}
+                                        {app.mental_health_need_help !== null && (
+                                          <div className="mt-1">
+                                            <span className="text-gray-600">Needs assistance:</span>{' '}
+                                            <span className={app.mental_health_need_help ? 'text-amber-700 font-medium' : 'text-gray-700'}>
+                                              {app.mental_health_need_help ? 'Yes' : 'No'}
+                                            </span>
+                                          </div>
+                                        )}
+                                        {app.mental_health_description && (
+                                          <p className="mt-1 text-gray-700 bg-white p-2 rounded border border-gray-200">
+                                            {app.mental_health_description}
+                                          </p>
+                                        )}
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="border-t pt-4">
+                                <h4 className="font-semibold text-gray-900 mb-2">Documents (CV & profile photo)</h4>
+                                <div className="flex flex-wrap gap-4 items-center">
+                                  {app.cv_url ? (
+                                    <div className="flex gap-2 items-center">
+                                      <a
+                                        href={app.cv_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-purple-600 hover:underline"
+                                      >
+                                        View CV
+                                      </a>
+                                      <a
+                                        href={getDownloadUrl(app.cv_url, `CV-${app.surname}-${app.firstname}.pdf`)}
+                                        className="inline-flex items-center px-3 py-1.5 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700"
+                                      >
+                                        Download CV
+                                      </a>
+                                    </div>
+                                  ) : (
+                                    <span className="text-gray-400">No CV uploaded</span>
+                                  )}
+                                  {app.portrait_url ? (
+                                    <div className="flex gap-2 items-center">
+                                      <a
+                                        href={app.portrait_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-purple-600 hover:underline"
+                                      >
+                                        View portrait
+                                      </a>
+                                      <a
+                                        href={getDownloadUrl(app.portrait_url, `Portrait-${app.surname}-${app.firstname}.jpg`)}
+                                        className="inline-flex items-center px-3 py-1.5 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700"
+                                      >
+                                        Download portrait
+                                      </a>
+                                      <img
+                                        src={app.portrait_url}
+                                        alt={`${app.firstname} ${app.surname}`}
+                                        className="w-20 h-20 rounded-lg object-cover border border-gray-200"
+                                      />
+                                    </div>
+                                  ) : (
+                                    <span className="text-gray-400">No portrait uploaded</span>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="border-t pt-4">
+                                <h4 className="font-semibold text-gray-900 mb-2">Bank details</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                  <div><span className="text-gray-600">Bank:</span> {app.bank_name}</div>
+                                  <div><span className="text-gray-600">Account holder:</span> {app.account_holder_name}</div>
+                                  <div><span className="text-gray-600">Account number:</span> {app.account_number}</div>
+                                  <div><span className="text-gray-600">Branch code:</span> {app.branch_code}</div>
+                                  <div><span className="text-gray-600">Account type:</span> {app.account_type}</div>
+                                </div>
+                              </div>
+
+                              {app.application_submitted_at && (
+                                <p className="text-xs text-gray-500 pt-2">
+                                  Submitted: {format(new Date(app.application_submitted_at), 'PPpp')}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    {applications.length === 0 && !isLoadingApplications && (
+                      <p className="text-gray-500">No application results yet.</p>
                     )}
                   </div>
                 )}
