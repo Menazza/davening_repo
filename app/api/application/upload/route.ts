@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     const filename = `davening-application/${kind}-${Date.now()}.${ext}`;
 
     const blob = await put(filename, file, {
-      access: 'private',
+      access: 'public',
       addRandomSuffix: true,
     });
 
