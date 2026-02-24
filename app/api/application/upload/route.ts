@@ -12,17 +12,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
-  // Allow either default or custom blob env names (e.g. BLOB2_READ_WRITE_TOKEN)
-  const hasBlobToken =
-    !!process.env.BLOB_READ_WRITE_TOKEN ||
-    !!process.env.BLOB2_READ_WRITE_TOKEN ||
-    Object.keys(process.env).some((key) =>
-      key.endsWith('_READ_WRITE_TOKEN')
-    );
-
-  if (!hasBlobToken) {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
     return NextResponse.json(
-      { error: 'File upload is not configured. Please connect a Vercel Blob store to this project.' },
+      { error: 'File upload is not configured. Please set BLOB_READ_WRITE_TOKEN.' },
       { status: 503 }
     );
   }
