@@ -106,19 +106,29 @@ async function migrate() {
     }
 
     // Migrate existing attendance records to Handler program
+    // Update at most one row per (user_id, date) to avoid violating unique (user_id, program_id, date)
     const handlerId = handlerProgram[0]?.id;
     if (handlerId) {
-      const updateResult = await sql`
-        UPDATE attendance 
-        SET program_id = ${handlerId}
+      const idsToUpdate = await sql`
+        SELECT DISTINCT ON (user_id, date) id
+        FROM attendance
         WHERE program_id IS NULL
-        RETURNING id;
+        AND (user_id, date) NOT IN (
+          SELECT user_id, date FROM attendance WHERE program_id = ${handlerId}
+        )
+        ORDER BY user_id, date, id;
       `;
-      const updatedCount = updateResult.length;
+      let updatedCount = 0;
+      for (const row of idsToUpdate as { id: string }[]) {
+        await sql`
+          UPDATE attendance SET program_id = ${handlerId} WHERE id = ${row.id}
+        `;
+        updatedCount += 1;
+      }
       if (updatedCount > 0) {
         console.log(`✅ Migrated ${updatedCount} existing attendance records to Handler program`);
       } else {
-        console.log('ℹ️  No existing attendance records to migrate');
+        console.log('ℹ️  No existing attendance records to migrate (or already migrated)');
       }
     } else {
       console.log('⚠️  Warning: Handler program not found, skipping migration of existing records');

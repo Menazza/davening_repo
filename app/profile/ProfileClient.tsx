@@ -38,11 +38,12 @@ interface HandlerStatus {
 export default function ProfileClient({ user: initialUser }: ProfileClientProps) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
-  const [isSavingPrograms, setIsSavingPrograms] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [allPrograms, setAllPrograms] = useState<Program[]>([]);
   const [userProgramIds, setUserProgramIds] = useState<string[]>([]);
+  const [joinRequests, setJoinRequests] = useState<{ program_id: string; program_name: string; status: string }[]>([]);
   const [isLoadingPrograms, setIsLoadingPrograms] = useState(true);
+  const [requestingProgramId, setRequestingProgramId] = useState<string | null>(null);
   const [isProgramEnrollmentOpen, setIsProgramEnrollmentOpen] = useState(false);
   const [isPersonalInfoOpen, setIsPersonalInfoOpen] = useState(false);
   const [handlerStatus, setHandlerStatus] = useState<HandlerStatus | null>(null);
@@ -124,18 +125,26 @@ export default function ProfileClient({ user: initialUser }: ProfileClientProps)
   const loadPrograms = async () => {
     try {
       setIsLoadingPrograms(true);
-      // Load all available programs
-      const programsResponse = await fetch('/api/programs');
+      const [programsResponse, userProgramsResponse, joinRequestsResponse] = await Promise.all([
+        fetch('/api/programs'),
+        fetch('/api/user-programs'),
+        fetch('/api/join-requests'),
+      ]);
       if (programsResponse.ok) {
         const programsData = await programsResponse.json();
         setAllPrograms(programsData.programs || []);
       }
-
-      // Load user's enrolled programs
-      const userProgramsResponse = await fetch('/api/user-programs');
       if (userProgramsResponse.ok) {
         const userProgramsData = await userProgramsResponse.json();
         setUserProgramIds((userProgramsData.programs || []).map((p: any) => p.id));
+      }
+      if (joinRequestsResponse.ok) {
+        const joinData = await joinRequestsResponse.json();
+        setJoinRequests((joinData.requests || []).map((r: any) => ({
+          program_id: r.program_id,
+          program_name: r.program_name || '',
+          status: r.status,
+        })));
       }
     } catch (error) {
       console.error('Error loading programs:', error);
@@ -144,39 +153,33 @@ export default function ProfileClient({ user: initialUser }: ProfileClientProps)
     }
   };
 
-  const handleProgramToggle = (programId: string) => {
-    setUserProgramIds(prev => 
-      prev.includes(programId)
-        ? prev.filter(id => id !== programId)
-        : [...prev, programId]
-    );
+  const getProgramStatus = (programId: string): 'member' | 'pending' | 'rejected' | null => {
+    if (userProgramIds.includes(programId)) return 'member';
+    const req = joinRequests.find(r => r.program_id === programId);
+    if (req?.status === 'pending') return 'pending';
+    if (req?.status === 'rejected') return 'rejected';
+    return null;
   };
 
-  const handleSavePrograms = async () => {
-    setIsSavingPrograms(true);
+  const handleRequestToJoin = async (programId: string) => {
+    setRequestingProgramId(programId);
     setMessage(null);
-
     try {
-      const response = await fetch('/api/user-programs', {
-        method: 'PUT',
+      const response = await fetch(`/api/programs/${programId}/join-request`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ programIds: userProgramIds }),
       });
-
+      const data = await response.json();
       if (response.ok) {
-        setMessage({ type: 'success', text: 'Program enrollments updated successfully!' });
-        // Reload to get updated program list
+        setMessage({ type: 'success', text: data.message || 'Join request submitted. An admin will review it.' });
         await loadPrograms();
-        // Close the enrollment section after saving
-        setIsProgramEnrollmentOpen(false);
       } else {
-        const data = await response.json();
-        setMessage({ type: 'error', text: data.error || 'Failed to update program enrollments' });
+        setMessage({ type: 'error', text: data.error || 'Failed to submit request' });
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'An error occurred while updating program enrollments' });
+      setMessage({ type: 'error', text: 'An error occurred. Please try again.' });
     } finally {
-      setIsSavingPrograms(false);
+      setRequestingProgramId(null);
     }
   };
 
@@ -250,7 +253,7 @@ export default function ProfileClient({ user: initialUser }: ProfileClientProps)
                 You are not currently enrolled in the Davening Programme.
               </p>
               <p className="text-sm text-gray-600">
-                To join, open the Program Enrollment section below and add the Handler programme.
+                To join, open the Program Enrollment section below and request to join the Handler programme. An admin must approve your request.
               </p>
             </div>
           ) : !handlerStatus.applicationComplete ? (
@@ -353,53 +356,75 @@ export default function ProfileClient({ user: initialUser }: ProfileClientProps)
           {isProgramEnrollmentOpen && (
             <>
               <p className="text-sm text-gray-600 mb-3 sm:mb-4 mt-3">
-                Select the programs you are part of. You can only submit attendance for programs you're enrolled in.
+                Request to join a program. An admin must approve your request before you can submit attendance for that program.
               </p>
           
               {isLoadingPrograms ? (
-            <div className="text-gray-600">Loading programs...</div>
-          ) : (
-            <>
-              <div className="space-y-2 sm:space-y-3 mb-3 sm:mb-4">
-                {allPrograms.map((program) => (
-                  <label
-                    key={program.id}
-                    className="flex items-start space-x-3 p-3 sm:p-3 border border-gray-200 rounded-lg hover:bg-gray-50 active:bg-gray-100 cursor-pointer touch-manipulation min-h-[48px]"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={userProgramIds.includes(program.id)}
-                      onChange={() => handleProgramToggle(program.id)}
-                      className="mt-1 w-5 h-5 sm:w-4 sm:h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 touch-manipulation"
-                    />
-                    <div className="flex-1">
-                      <div className="font-medium text-gray-900">{formatProgramName(program.name)}</div>
-                      {program.description && (
-                        <div className="text-sm text-gray-500">{program.description}</div>
-                      )}
-                    </div>
-                  </label>
-                ))}
-              </div>
-              
-              {userProgramIds.length === 0 && (
-                <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div className="text-gray-600">Loading programs...</div>
+              ) : (
+                <div className="space-y-2 sm:space-y-3">
+                  {allPrograms.map((program) => {
+                    const status = getProgramStatus(program.id);
+                    return (
+                      <div
+                        key={program.id}
+                        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 border border-gray-200 rounded-lg"
+                      >
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-900">{formatProgramName(program.name)}</div>
+                          {program.description && (
+                            <div className="text-sm text-gray-500">{program.description}</div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {status === 'member' && (
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              Member
+                            </span>
+                          )}
+                          {status === 'pending' && (
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                              Pending approval
+                            </span>
+                          )}
+                          {status === 'rejected' && (
+                            <>
+                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                Request rejected
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleRequestToJoin(program.id)}
+                                disabled={requestingProgramId === program.id}
+                                className="text-sm font-medium text-blue-600 hover:text-blue-800 disabled:opacity-50"
+                              >
+                                {requestingProgramId === program.id ? 'Submitting...' : 'Request again'}
+                              </button>
+                            </>
+                          )}
+                          {status === null && (
+                            <button
+                              type="button"
+                              onClick={() => handleRequestToJoin(program.id)}
+                              disabled={requestingProgramId === program.id}
+                              className="bg-blue-600 text-white py-2 px-4 rounded-md text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {requestingProgramId === program.id ? 'Submitting...' : 'Request to join'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {userProgramIds.length === 0 && !isLoadingPrograms && (
+                <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <p className="text-sm text-yellow-800">
-                    ⚠️ You must enroll in at least one program to submit attendance.
+                    You need to be approved for at least one program to submit attendance.
                   </p>
                 </div>
               )}
-
-              <button
-                type="button"
-                onClick={handleSavePrograms}
-                disabled={isSavingPrograms}
-                className="w-full bg-blue-600 text-white py-3 sm:py-2 px-4 text-sm sm:text-base rounded-md hover:bg-blue-700 active:bg-blue-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors touch-manipulation min-h-[48px] font-semibold"
-              >
-                {isSavingPrograms ? 'Saving...' : 'Save Program Enrollments'}
-              </button>
-            </>
-          )}
             </>
           )}
         </div>

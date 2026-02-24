@@ -106,7 +106,7 @@ export default function AdminPage() {
   const [sortBy, setSortBy] = useState<'name' | 'owed' | 'earned'>('owed');
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<
-    'dashboard' | 'users' | 'announcements' | 'applications' | 'application-results' | 'shul-times'
+    'dashboard' | 'users' | 'announcements' | 'applications' | 'application-results' | 'join-requests' | 'shul-times'
   >('dashboard');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [paymentAmount, setPaymentAmount] = useState('');
@@ -473,6 +473,16 @@ export default function AdminPage() {
                 }`}
               >
                 Application results
+              </button>
+              <button
+                onClick={() => setActiveTab('join-requests')}
+                className={`px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap ${
+                  activeTab === 'join-requests'
+                    ? 'border-purple-500 text-purple-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Join Requests
               </button>
               <button
                 onClick={() => setActiveTab('shul-times')}
@@ -1216,6 +1226,12 @@ export default function AdminPage() {
               </div>
             )}
 
+            {activeTab === 'join-requests' && (
+              <div>
+                <JoinRequestsManager />
+              </div>
+            )}
+
             {activeTab === 'shul-times' && (
               <div>
                 <ShulTimesManager />
@@ -1737,6 +1753,133 @@ function AnnouncementsManager() {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+// Join Requests Manager Component
+function JoinRequestsManager() {
+  const [requests, setRequests] = useState<{
+    id: string;
+    user_id: string;
+    program_id: string;
+    program_name: string;
+    email: string;
+    full_name: string | null;
+    requested_at: string;
+  }[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [actingId, setActingId] = useState<string | null>(null);
+
+  const fetchRequests = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/admin/join-requests');
+      if (response.ok) {
+        const data = await response.json();
+        setRequests(data.requests || []);
+      }
+    } catch (error) {
+      console.error('Error fetching join requests:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchRequests();
+  }, [fetchRequests]);
+
+  const handleApprove = async (requestId: string) => {
+    setActingId(requestId);
+    try {
+      const response = await fetch(`/api/admin/join-requests/${requestId}/approve`, {
+        method: 'POST',
+      });
+      const data = await response.json();
+      if (response.ok) {
+        alert(data.message || 'Request approved.');
+        fetchRequests();
+      } else {
+        alert(data.error || 'Failed to approve');
+      }
+    } catch (error) {
+      alert('An error occurred.');
+    } finally {
+      setActingId(null);
+    }
+  };
+
+  const handleReject = async (requestId: string) => {
+    if (!confirm('Reject this join request? The user can request again later.')) return;
+    setActingId(requestId);
+    try {
+      const response = await fetch(`/api/admin/join-requests/${requestId}/reject`, {
+        method: 'POST',
+      });
+      const data = await response.json();
+      if (response.ok) {
+        alert(data.message || 'Request rejected.');
+        fetchRequests();
+      } else {
+        alert(data.error || 'Failed to reject');
+      }
+    } catch (error) {
+      alert('An error occurred.');
+    } finally {
+      setActingId(null);
+    }
+  };
+
+  return (
+    <div>
+      <h3 className="text-lg font-semibold text-gray-900 mb-2">Program Join Requests</h3>
+      <p className="text-sm text-gray-600 mb-4">
+        Users request to join programs from their profile. Approve or reject requests here.
+      </p>
+      {isLoading ? (
+        <p className="text-gray-600">Loading...</p>
+      ) : requests.length === 0 ? (
+        <p className="text-gray-500">No pending join requests.</p>
+      ) : (
+        <div className="space-y-3">
+          {requests.map((req) => (
+            <div
+              key={req.id}
+              className="border border-gray-200 rounded-lg p-4 flex flex-wrap items-center justify-between gap-3"
+            >
+              <div>
+                <span className="font-semibold text-gray-900">
+                  {req.full_name || req.email}
+                </span>
+                <span className="text-gray-500 ml-2">({req.email})</span>
+                <div className="text-sm text-gray-600 mt-1">
+                  Program: <span className="font-medium">{req.program_name}</span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Requested: {format(new Date(req.requested_at), 'PPp')}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleApprove(req.id)}
+                  disabled={actingId !== null}
+                  className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700 disabled:opacity-50"
+                >
+                  {actingId === req.id ? '...' : 'Approve'}
+                </button>
+                <button
+                  onClick={() => handleReject(req.id)}
+                  disabled={actingId !== null}
+                  className="px-4 py-2 rounded-lg bg-red-100 text-red-700 text-sm font-semibold hover:bg-red-200 disabled:opacity-50"
+                >
+                  {actingId === req.id ? '...' : 'Reject'}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -39,6 +39,17 @@ interface PaymentRecord {
   created_at: string;
 }
 
+interface UserProfile {
+  id: string;
+  email: string;
+  full_name?: string;
+  hebrew_name?: string;
+  bank_name?: string;
+  account_number?: string;
+  branch_code?: string;
+  account_type?: string;
+}
+
 export default function KollelAdminPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
@@ -52,6 +63,7 @@ export default function KollelAdminPage() {
   const [paymentDate, setPaymentDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [paymentNotes, setPaymentNotes] = useState('');
   const [viewingUserId, setViewingUserId] = useState<string | null>(null);
+  const [viewingUserProfile, setViewingUserProfile] = useState<UserProfile | null>(null);
   const [monthlyEarnings, setMonthlyEarnings] = useState<MonthlyEarning[]>([]);
   const [userPayments, setUserPayments] = useState<PaymentRecord[]>([]);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
@@ -174,10 +186,18 @@ export default function KollelAdminPage() {
   const fetchUserDetails = async (userId: string) => {
     setIsLoadingDetails(true);
     try {
-      const [earningsRes, paymentsRes] = await Promise.all([
+      const [profileRes, earningsRes, paymentsRes] = await Promise.all([
+        fetch(`/api/kollel-admin/users/${userId}`),
         fetch(`/api/kollel-earnings?user_id=${userId}`),
         fetch(`/api/kollel-payments?user_id=${userId}`),
       ]);
+
+      if (profileRes.ok) {
+        const profileData = await profileRes.json();
+        setViewingUserProfile(profileData.user || null);
+      } else {
+        setViewingUserProfile(null);
+      }
 
       if (earningsRes.ok && paymentsRes.ok) {
         const earningsData = await earningsRes.json();
@@ -202,6 +222,7 @@ export default function KollelAdminPage() {
 
   const handleCloseDetails = () => {
     setViewingUserId(null);
+    setViewingUserProfile(null);
     setMonthlyEarnings([]);
     setUserPayments([]);
   };
@@ -476,13 +497,13 @@ export default function KollelAdminPage() {
                       <div>
                         <label className="text-sm font-medium text-gray-500">Name</label>
                         <p className="text-gray-900 font-medium">
-                          {users.find((u) => u.user_id === viewingUserId)?.full_name || 'N/A'}
+                          {viewingUserProfile?.full_name || users.find((u) => u.user_id === viewingUserId)?.full_name || 'N/A'}
                         </p>
                       </div>
                       <div>
                         <label className="text-sm font-medium text-gray-500">Email</label>
                         <p className="text-gray-900 font-medium">
-                          {users.find((u) => u.user_id === viewingUserId)?.email}
+                          {viewingUserProfile?.email ?? users.find((u) => u.user_id === viewingUserId)?.email}
                         </p>
                       </div>
                       <div>
@@ -490,6 +511,29 @@ export default function KollelAdminPage() {
                         <p className="text-2xl font-bold text-orange-700">
                           R{users.find((u) => u.user_id === viewingUserId)?.total_owed.toFixed(2) || '0.00'}
                         </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Banking Details */}
+                  <div className="bg-blue-50 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Banking Details</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Bank Name</label>
+                        <p className="text-gray-900 font-medium">{viewingUserProfile?.bank_name || 'Not provided'}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Account Number</label>
+                        <p className="text-gray-900 font-medium font-mono">{viewingUserProfile?.account_number || 'Not provided'}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Branch Code</label>
+                        <p className="text-gray-900 font-medium font-mono">{viewingUserProfile?.branch_code || 'Not provided'}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Account Type</label>
+                        <p className="text-gray-900 font-medium">{viewingUserProfile?.account_type || 'Not provided'}</p>
                       </div>
                     </div>
                   </div>
