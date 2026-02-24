@@ -46,9 +46,8 @@ export async function POST(request: NextRequest) {
     const ext = type === 'application/pdf' ? 'pdf' : type.replace('image/', '');
     const filename = `davening-application/${kind}-${Date.now()}.${ext}`;
 
-    // Use the store's configured (private) access mode
     const blob = await put(filename, file, {
-      // access: 'private' is implied when using a private store token
+      access: 'private',
       addRandomSuffix: true,
     });
 
