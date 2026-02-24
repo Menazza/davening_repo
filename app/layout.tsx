@@ -1,6 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { StackProvider, StackTheme } from "@stackframe/stack";
-import { stackClientApp } from "../stack/client";
 import "./globals.css";
 import ServiceWorkerRegistration from "./ServiceWorkerRegistration";
 
@@ -41,12 +39,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <StackProvider app={stackClientApp}>
-          <StackTheme>
-            {children}
-            <ServiceWorkerRegistration />
-          </StackTheme>
-        </StackProvider>
+        {children}
+        <ServiceWorkerRegistration />
       </body>
     </html>
   );
