@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
-import { useUser } from '@stackframe/stack';
 import Navigation from '@/components/Navigation';
 
 interface Earnings {
@@ -233,17 +232,9 @@ export default function EarningsPage() {
     }
   };
 
-  const stackUser = useUser();
-  
   const handleLogout = async () => {
     try {
-      // Sign out on client side first
-      if (stackUser) {
-        await stackUser.signOut();
-      }
-      // Also call the API to ensure server-side logout
       await fetch('/api/auth/logout', { method: 'POST' });
-      // Force hard redirect to clear all state
       window.location.href = '/';
     } catch (error) {
       console.error('Logout error:', error);

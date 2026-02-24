@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getAuthenticatedHendlerAdmin } from '@/lib/server-auth';
 import { getAllApplicationsForAdmin } from '@/lib/application';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     await getAuthenticatedHendlerAdmin();

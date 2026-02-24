@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
-import { useUser } from '@stackframe/stack';
 import Navigation from '@/components/Navigation';
 
 interface User {
@@ -207,13 +206,8 @@ export default function KollelAdminPage() {
     setUserPayments([]);
   };
 
-  const stackUser = useUser();
-
   const handleLogout = async () => {
     try {
-      if (stackUser) {
-        await stackUser.signOut();
-      }
       await fetch('/api/auth/logout', { method: 'POST' });
       window.location.href = '/';
     } catch (error) {

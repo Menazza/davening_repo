@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { format, startOfYear, endOfYear, startOfMonth, endOfMonth, subMonths } from 'date-fns';
-import { useUser } from '@stackframe/stack';
+import { format, startOfYear, endOfYear, startOfMonth, endOfMonth } from 'date-fns';
 import Navigation from '@/components/Navigation';
 import AttendanceCalendar from '@/components/AttendanceCalendar';
 import { formatProgramName } from '@/lib/format-program-name';
@@ -116,17 +115,9 @@ export default function StatisticsPage() {
     }
   };
 
-  const stackUser = useUser();
-  
   const handleLogout = async () => {
     try {
-      // Sign out on client side first
-      if (stackUser) {
-        await stackUser.signOut();
-      }
-      // Also call the API to ensure server-side logout
       await fetch('/api/auth/logout', { method: 'POST' });
-      // Force hard redirect to clear all state
       window.location.href = '/';
     } catch (error) {
       console.error('Logout error:', error);
