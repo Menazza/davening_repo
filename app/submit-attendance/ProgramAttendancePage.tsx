@@ -154,7 +154,7 @@ export default function ProgramAttendancePage({ user }: ProgramAttendancePagePro
                     const program = programs.find(p => p.id === e.target.value);
                     setSelectedProgram(program || null);
                   }}
-                  className="w-full px-3 sm:px-4 py-2.5 sm:py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent touch-manipulation min-h-[44px]"
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent touch-manipulation min-h-[44px] text-gray-900"
                 >
                   {programs.map((program) => (
                     <option key={program.id} value={program.id}>

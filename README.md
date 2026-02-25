@@ -5,9 +5,9 @@ A comprehensive web application for tracking morning learning and davening atten
 ## Features
 
 ### User Features
-- **Daily Attendance Form**: Submit attendance for each day with:
+-- **Daily Attendance Form**: Submit attendance for each day with:
   - Date selection
-  - Early arrival (5 minutes early) tracking
+  - Early arrival tracking (15 minutes on weekdays, 25 minutes on Saturdays)
   - Learning in early time tracking
   - Late arrival tracking with increments
 - **User Profile**: Manage personal information including:

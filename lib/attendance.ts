@@ -77,12 +77,12 @@ function calculateEarnings(
     on_time_bonus = rate;
   }
 
-  // Early bonus: if they came 5 mins early
+  // Early bonus: if they came early (15 min weekdays, 25 min on weekends, but payout is still a flat rate)
   if (record.came_early) {
     early_bonus = rate;
   }
 
-  // Learning bonus: if they learned in those 5 mins
+  // Learning bonus: if they learned in that early time block
   if (record.learned_early) {
     learning_bonus = rate;
   }

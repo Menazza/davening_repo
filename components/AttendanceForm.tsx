@@ -153,7 +153,7 @@ export default function AttendanceForm({ date, programId, onSuccess }: Attendanc
             className="w-5 h-5 sm:w-5 sm:h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 touch-manipulation"
           />
           <span className="text-sm sm:text-base text-gray-700 font-medium">
-            Did you come 5 minutes early?
+            Did you come early (15 minutes on weekdays, 25 minutes on Saturday)?
           </span>
         </label>
       </div>
@@ -168,12 +168,12 @@ export default function AttendanceForm({ date, programId, onSuccess }: Attendanc
             className="w-5 h-5 sm:w-5 sm:h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
           />
           <span className="text-sm sm:text-base text-gray-700 font-medium">
-            Did you learn in those 5 minutes?
+            Did you learn during that early time?
           </span>
         </label>
         {!formData.came_early && (
           <p className="text-xs sm:text-sm text-gray-500 mt-1 ml-8">
-            (Only applicable if you came 5 minutes early)
+            (Only applicable if you came early)
           </p>
         )}
       </div>
@@ -223,7 +223,7 @@ export default function AttendanceForm({ date, programId, onSuccess }: Attendanc
               })
             }
             required
-            className="w-full px-3 sm:px-4 py-2.5 sm:py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent touch-manipulation min-h-[44px]"
+            className="w-full px-3 sm:px-4 py-2.5 sm:py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent touch-manipulation min-h-[44px] text-gray-900"
           >
             <option value="">Select minutes late</option>
             {lateMinutesOptions.map((minutes) => (

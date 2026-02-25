@@ -57,10 +57,8 @@ interface EarningsRecord {
 
 interface AdminStats {
   totalUsers: number;
-  totalEarned: number;
-  totalPaid: number;
-  totalOwed: number;
   usersWithBalance: number;
+  totalLearningMinutes: number;
 }
 
 interface ApplicationRecord {
@@ -106,7 +104,7 @@ export default function AdminPage() {
   const [sortBy, setSortBy] = useState<'name' | 'owed' | 'earned'>('owed');
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<
-    'dashboard' | 'users' | 'announcements' | 'applications' | 'application-results' | 'join-requests' | 'shul-times'
+    'dashboard' | 'users' | 'announcements' | 'forms' | 'join-requests' | 'shul-times'
   >('dashboard');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [paymentAmount, setPaymentAmount] = useState('');
@@ -158,7 +156,7 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
-    if (activeTab === 'applications' || activeTab === 'application-results') {
+    if (activeTab === 'forms') {
       fetchApplications();
     }
   }, [activeTab, fetchApplications]);
@@ -258,17 +256,15 @@ export default function AdminPage() {
   };
 
   const calculateStats = (): AdminStats => {
-    const totalEarned = users.reduce((sum, u) => sum + u.total_earned, 0);
-    const totalPaid = users.reduce((sum, u) => sum + u.total_paid, 0);
-    const totalOwed = totalEarned - totalPaid;
     const usersWithBalance = users.filter((u) => u.total_owed > 0).length;
+    // Approximate learning minutes from earnings: each learning bonus equals the rate.
+    // We don't have per-day breakdown here, so we leave this as 0 for now or compute elsewhere.
+    const totalLearningMinutes = 0;
 
     return {
       totalUsers: users.length,
-      totalEarned,
-      totalPaid,
-      totalOwed,
       usersWithBalance,
+      totalLearningMinutes,
     };
   };
 
@@ -455,24 +451,14 @@ export default function AdminPage() {
                 Announcements
               </button>
               <button
-                onClick={() => setActiveTab('applications')}
+                onClick={() => setActiveTab('forms')}
                 className={`px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap ${
-                  activeTab === 'applications'
+                  activeTab === 'forms'
                     ? 'border-purple-500 text-purple-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                Applications
-              </button>
-              <button
-                onClick={() => setActiveTab('application-results')}
-                className={`px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap ${
-                  activeTab === 'application-results'
-                    ? 'border-purple-500 text-purple-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                Application results
+                Forms
               </button>
               <button
                 onClick={() => setActiveTab('join-requests')}
@@ -519,40 +505,28 @@ export default function AdminPage() {
                   <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-6 text-white shadow-lg">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-green-100 text-sm font-medium">Total Earned</p>
-                        <p className="text-3xl font-bold mt-1">R{stats.totalEarned.toFixed(2)}</p>
+                        <p className="text-green-100 text-sm font-medium">Total Users</p>
+                        <p className="text-3xl font-bold mt-1">{stats.totalUsers}</p>
+                      </div>
+                      <div className="bg-white bg-opacity-20 rounded-full p-3">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-6 text-white shadow-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-blue-100 text-sm font-medium">Estimated Learning Hours</p>
+                        <p className="text-3xl font-bold mt-1">
+                          {(stats.totalLearningMinutes / 60).toFixed(1)}
+                        </p>
                       </div>
                       <div className="bg-white bg-opacity-20 rounded-full p-3">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-gradient-to-br from-blue-400 to-blue-500 rounded-lg p-6 text-white shadow-lg">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-blue-100 text-sm font-medium">Total Paid</p>
-                        <p className="text-3xl font-bold mt-1">R{stats.totalPaid.toFixed(2)}</p>
-                      </div>
-                      <div className="bg-white bg-opacity-20 rounded-full p-3">
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-6 text-white shadow-lg">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-orange-100 text-sm font-medium">Total Owed</p>
-                        <p className="text-3xl font-bold mt-1">R{stats.totalOwed.toFixed(2)}</p>
-                      </div>
-                      <div className="bg-white bg-opacity-20 rounded-full p-3">
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                       </div>
                     </div>
@@ -677,7 +651,6 @@ export default function AdminPage() {
                               <div className="text-sm font-medium text-gray-900">
                                 {u.full_name || u.email}
                               </div>
-                              <div className="text-sm text-gray-500">{u.email}</div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm">
                               {u.application_status === 'complete' && (
@@ -828,7 +801,7 @@ export default function AdminPage() {
               </div>
             )}
 
-            {activeTab === 'applications' && (
+            {activeTab === 'forms' && (
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-900">Davening Programme Applications</h3>
                 <p className="text-sm text-gray-600">View all submitted application forms, answers, and documents.</p>
@@ -1011,219 +984,6 @@ export default function AdminPage() {
               </div>
             )}
 
-            {activeTab === 'application-results' && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900">Application results (form & test answers)</h3>
-                <p className="text-sm text-gray-600">
-                  View form answers including health, need for assistance, and download CV and profile photos.
-                </p>
-
-                <div>
-                  <input
-                    type="text"
-                    placeholder="Search by name, email..."
-                    value={resultsSearch}
-                    onChange={(e) => setResultsSearch(e.target.value)}
-                    className="w-full max-w-md px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 mb-4"
-                  />
-                </div>
-
-                {isLoadingApplications ? (
-                  <p className="text-gray-600">Loading application results...</p>
-                ) : (
-                  <div className="space-y-3">
-                    {applications
-                      .filter(
-                        (app) =>
-                          !resultsSearch ||
-                          `${app.firstname} ${app.surname}`.toLowerCase().includes(resultsSearch.toLowerCase()) ||
-                          app.user_email?.toLowerCase().includes(resultsSearch.toLowerCase()) ||
-                          (app.user_full_name || '').toLowerCase().includes(resultsSearch.toLowerCase())
-                      )
-                      .map((app) => (
-                        <div
-                          key={app.id}
-                          className="border border-gray-200 rounded-lg overflow-hidden"
-                        >
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setExpandedResultId(expandedResultId === app.id ? null : app.id)
-                            }
-                            className="w-full px-4 py-3 flex justify-between items-center text-left hover:bg-gray-50"
-                          >
-                            <div className="flex items-center gap-3">
-                              {app.portrait_url ? (
-                                <img
-                                  src={app.portrait_url}
-                                  alt=""
-                                  className="w-10 h-10 rounded-full object-cover border border-gray-200"
-                                />
-                              ) : (
-                                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-sm">
-                                  {app.firstname?.[0]}{app.surname?.[0]}
-                                </div>
-                              )}
-                              <div>
-                                <span className="font-semibold text-gray-900">
-                                  {app.firstname} {app.surname}
-                                </span>
-                                <span className="text-gray-500 ml-2">({app.user_email})</span>
-                                {app.application_submitted_at && (
-                                  <span className="ml-2 text-xs text-green-600">Submitted</span>
-                                )}
-                              </div>
-                            </div>
-                            <svg
-                              className={`w-5 h-5 text-gray-400 transition-transform ${
-                                expandedResultId === app.id ? 'rotate-180' : ''
-                              }`}
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
-                          </button>
-
-                          {expandedResultId === app.id && (
-                            <div className="px-4 py-4 bg-gray-50 border-t border-gray-200 space-y-5 text-sm">
-                              <div>
-                                <h4 className="font-semibold text-gray-900 mb-2">Contact & basic info</h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                  <div><span className="text-gray-600">Name:</span> {app.firstname} {app.surname}</div>
-                                  <div><span className="text-gray-600">Email:</span> {app.user_email}</div>
-                                  <div><span className="text-gray-600">Contact:</span> {app.contact_number}</div>
-                                  <div><span className="text-gray-600">Date of birth:</span> {app.date_of_birth}</div>
-                                  <div className="md:col-span-2"><span className="text-gray-600">Address:</span> {app.home_address}</div>
-                                  <div><span className="text-gray-600">Next of kin:</span> {app.next_of_kin_name} ({app.next_of_kin_relationship})</div>
-                                  <div><span className="text-gray-600">Availability:</span> {(app.availability_days || []).length > 0 ? app.availability_days.join(', ') : 'None'}</div>
-                                </div>
-                              </div>
-
-                              <div className="border-t pt-4">
-                                <h4 className="font-semibold text-gray-900 mb-2">Health & assistance</h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                  <div>
-                                    <span className="text-gray-600">Physical health condition:</span>{' '}
-                                    <span className={app.health_condition ? 'text-amber-700 font-medium' : 'text-gray-700'}>
-                                      {app.health_condition ? 'Yes' : 'No'}
-                                    </span>
-                                    {app.health_condition && app.health_condition_description && (
-                                      <p className="mt-1 text-gray-700 bg-white p-2 rounded border border-gray-200">
-                                        {app.health_condition_description}
-                                      </p>
-                                    )}
-                                  </div>
-                                  <div>
-                                    <span className="text-gray-600">Mental health condition:</span>{' '}
-                                    <span className={app.mental_health_condition ? 'text-amber-700 font-medium' : 'text-gray-700'}>
-                                      {app.mental_health_condition ? 'Yes' : 'No'}
-                                    </span>
-                                    {app.mental_health_condition && (
-                                      <>
-                                        {app.mental_health_receiving_help !== null && (
-                                          <div className="mt-1">
-                                            <span className="text-gray-600">Receiving help:</span>{' '}
-                                            {app.mental_health_receiving_help ? 'Yes' : 'No'}
-                                          </div>
-                                        )}
-                                        {app.mental_health_need_help !== null && (
-                                          <div className="mt-1">
-                                            <span className="text-gray-600">Needs assistance:</span>{' '}
-                                            <span className={app.mental_health_need_help ? 'text-amber-700 font-medium' : 'text-gray-700'}>
-                                              {app.mental_health_need_help ? 'Yes' : 'No'}
-                                            </span>
-                                          </div>
-                                        )}
-                                        {app.mental_health_description && (
-                                          <p className="mt-1 text-gray-700 bg-white p-2 rounded border border-gray-200">
-                                            {app.mental_health_description}
-                                          </p>
-                                        )}
-                                      </>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="border-t pt-4">
-                                <h4 className="font-semibold text-gray-900 mb-2">Documents (CV & profile photo)</h4>
-                                <div className="flex flex-wrap gap-4 items-center">
-                                  {app.cv_url ? (
-                                    <div className="flex gap-2 items-center">
-                                      <a
-                                        href={app.cv_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-purple-600 hover:underline"
-                                      >
-                                        View CV
-                                      </a>
-                                      <a
-                                        href={getDownloadUrl(app.cv_url, `CV-${app.surname}-${app.firstname}.pdf`)}
-                                        className="inline-flex items-center px-3 py-1.5 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700"
-                                      >
-                                        Download CV
-                                      </a>
-                                    </div>
-                                  ) : (
-                                    <span className="text-gray-400">No CV uploaded</span>
-                                  )}
-                                  {app.portrait_url ? (
-                                    <div className="flex gap-2 items-center">
-                                      <a
-                                        href={app.portrait_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-purple-600 hover:underline"
-                                      >
-                                        View portrait
-                                      </a>
-                                      <a
-                                        href={getDownloadUrl(app.portrait_url, `Portrait-${app.surname}-${app.firstname}.jpg`)}
-                                        className="inline-flex items-center px-3 py-1.5 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700"
-                                      >
-                                        Download portrait
-                                      </a>
-                                      <img
-                                        src={app.portrait_url}
-                                        alt={`${app.firstname} ${app.surname}`}
-                                        className="w-20 h-20 rounded-lg object-cover border border-gray-200"
-                                      />
-                                    </div>
-                                  ) : (
-                                    <span className="text-gray-400">No portrait uploaded</span>
-                                  )}
-                                </div>
-                              </div>
-
-                              <div className="border-t pt-4">
-                                <h4 className="font-semibold text-gray-900 mb-2">Bank details</h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                  <div><span className="text-gray-600">Bank:</span> {app.bank_name}</div>
-                                  <div><span className="text-gray-600">Account holder:</span> {app.account_holder_name}</div>
-                                  <div><span className="text-gray-600">Account number:</span> {app.account_number}</div>
-                                  <div><span className="text-gray-600">Branch code:</span> {app.branch_code}</div>
-                                  <div><span className="text-gray-600">Account type:</span> {app.account_type}</div>
-                                </div>
-                              </div>
-
-                              {app.application_submitted_at && (
-                                <p className="text-xs text-gray-500 pt-2">
-                                  Submitted: {format(new Date(app.application_submitted_at), 'PPpp')}
-                                </p>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    {applications.length === 0 && !isLoadingApplications && (
-                      <p className="text-gray-500">No application results yet.</p>
-                    )}
-                  </div>
-                )}
-              </div>
             )}
 
             {activeTab === 'join-requests' && (

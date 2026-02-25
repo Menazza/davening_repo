@@ -27,8 +27,6 @@ export default function AttendanceCalendar({ year, month }: AttendanceCalendarPr
   const router = useRouter();
   const [attendance, setAttendance] = useState<Record<string, AttendanceRecord[]>>({});
   const [isLoading, setIsLoading] = useState(true);
-  const [totalLearningDays, setTotalLearningDays] = useState(0);
-  const [totalLearningMinutes, setTotalLearningMinutes] = useState(0);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedProgramForEdit, setSelectedProgramForEdit] = useState<AttendanceRecord | null>(null);
@@ -121,20 +119,6 @@ export default function AttendanceCalendar({ year, month }: AttendanceCalendarPr
         });
         
         setAttendance(attendanceMap);
-        
-        // Calculate learning stats (only from Handler attendance)
-        let learningDays = 0;
-        let learningMinutes = 0;
-        Object.values(attendanceMap).forEach((records) => {
-          records.forEach((record) => {
-            if (record.type === 'handler' && record.learned_early) {
-              learningDays++;
-              learningMinutes += 5; // 5 minutes per day
-            }
-          });
-        });
-        setTotalLearningDays(learningDays);
-        setTotalLearningMinutes(learningMinutes);
       }
     } catch (error) {
       console.error('Error fetching attendance:', error);
@@ -274,23 +258,6 @@ export default function AttendanceCalendar({ year, month }: AttendanceCalendarPr
             </div>
           );
         })}
-      </div>
-
-      <div className="border-t pt-3 sm:pt-4 mt-3 sm:mt-4">
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
-          <div>
-            <span className="text-gray-600">Learning Days:</span>
-            <span className="ml-1 sm:ml-2 font-semibold text-gray-900">{totalLearningDays}</span>
-          </div>
-          <div>
-            <span className="text-gray-600">Learning Time:</span>
-            <span className="ml-1 sm:ml-2 font-semibold text-gray-900">{totalLearningMinutes} min</span>
-          </div>
-        </div>
-        <p className="text-xs text-gray-500 mt-2 text-center px-2">
-          Click any day to view and manage attendance for all your programs
-        </p>
-
       </div>
 
       {/* Day View Modal - Shows all programs for the selected day */}

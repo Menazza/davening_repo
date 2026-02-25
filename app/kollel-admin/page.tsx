@@ -344,7 +344,6 @@ export default function KollelAdminPage() {
                       <div className="text-sm font-medium text-gray-900">
                         {u.full_name || u.email}
                       </div>
-                      <div className="text-sm text-gray-500">{u.email}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       R{u.total_earned.toFixed(2)}
