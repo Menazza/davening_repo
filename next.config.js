@@ -1,7 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  transpilePackages: ['@stackframe/stack'],
   // Enable experimental features for faster compilation
   experimental: {
     optimizePackageImports: ['date-fns'],

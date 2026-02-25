@@ -30,7 +30,7 @@ A comprehensive web application for tracking morning learning and davening atten
 
 - **Framework**: Next.js 14 (App Router)
 - **Database**: NeonDB (PostgreSQL)
-- **Authentication**: Neon Auth (to be configured)
+- **Authentication**: Internal email/password auth (custom `/api/auth/*` routes)
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
 - **Date Handling**: date-fns
@@ -46,8 +46,7 @@ npm install
 ### 2. Database Setup
 
 1. Create a NeonDB project at [neon.tech](https://neon.tech)
-2. Enable Neon Auth in your Neon project
-3. Copy `.env.example` to `.env.local`:
+2. Copy `.env.example` to `.env.local`:
    ```bash
    cp .env.example .env.local
    ```
@@ -57,15 +56,10 @@ npm install
    - Copy: Project ID, Publishable Client Key, Secret Server Key
    - Get your **Database owner connection string** from Settings
 
-5. Fill in `.env.local`:
+5. Fill in `.env.local` with at least:
    ```env
-   NEXT_PUBLIC_STACK_PROJECT_ID=your_project_id_here
-   NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY=your_publishable_key_here
-   STACK_SECRET_SERVER_KEY=your_secret_key_here
    DATABASE_URL=your_database_owner_connection_string_here
    ```
-
-See [GETTING_STARTED.md](./GETTING_STARTED.md) for detailed instructions.
 
 ### 3. Run Database Migration
 
@@ -81,19 +75,7 @@ This will create all necessary tables:
 - `shul_times` - Shul service times
 - `announcements` - Announcements from admin
 
-### 4. Set Up Neon Auth
-
-1. Run the Neon Auth setup wizard:
-   ```bash
-   npx @stackframe/init-stack@latest --no-browser
-   ```
-   This automatically creates authentication routes at `/handler/sign-in`, `/handler/sign-up`, etc.
-
-2. Fill in your environment variables in `.env.local` (see Step 2 above)
-
-For detailed instructions, see [GETTING_STARTED.md](./GETTING_STARTED.md) or [SETUP_NEON_AUTH.md](./SETUP_NEON_AUTH.md).
-
-### 5. Create Admin User
+### 4. Create Admin User
 
 To create an admin user, you'll need to manually update the database:
 
@@ -103,7 +85,7 @@ UPDATE user_profiles SET is_admin = TRUE WHERE email = 'admin@example.com';
 
 Or use the Neon console to set `is_admin = TRUE` for the desired user.
 
-### 6. Run Development Server
+### 5. Run Development Server
 
 ```bash
 npm run dev

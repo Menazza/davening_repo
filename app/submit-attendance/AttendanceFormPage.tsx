@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
-import { useUser } from '@stackframe/stack';
 import AttendanceForm from '@/components/AttendanceForm';
 import Navigation from '@/components/Navigation';
 import DatePicker from '@/components/DatePicker';
@@ -23,8 +22,6 @@ export default function AttendanceFormPage({ user }: AttendanceFormPageProps) {
   const router = useRouter();
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [isHandlerReady, setIsHandlerReady] = useState(false);
-
-  const stackUser = useUser();
 
   useEffect(() => {
     const checkHandlerStatus = async () => {
@@ -50,11 +47,6 @@ export default function AttendanceFormPage({ user }: AttendanceFormPageProps) {
   
   const handleLogout = async () => {
     try {
-      // Sign out on client side first
-      if (stackUser) {
-        await stackUser.signOut();
-      }
-      // Also call the API to ensure server-side logout
       await fetch('/api/auth/logout', { method: 'POST' });
       // Force hard redirect to clear all state
       window.location.href = '/';

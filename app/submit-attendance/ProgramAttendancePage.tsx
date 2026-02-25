@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
-import { useUser } from '@stackframe/stack';
 import AttendanceForm from '@/components/AttendanceForm';
 import KollelAttendanceForm from '@/components/KollelAttendanceForm';
 import Navigation from '@/components/Navigation';
@@ -35,8 +34,6 @@ export default function ProgramAttendancePage({ user }: ProgramAttendancePagePro
   const [isLoadingPrograms, setIsLoadingPrograms] = useState(true);
   const [handlerStatus, setHandlerStatus] = useState<{ hasHandlerProgram: boolean; applicationComplete: boolean } | null>(null);
   const [isLoadingHandlerStatus, setIsLoadingHandlerStatus] = useState(true);
-
-  const stackUser = useUser();
 
   useEffect(() => {
     // Check for date and program_id query parameters from URL
@@ -96,9 +93,6 @@ export default function ProgramAttendancePage({ user }: ProgramAttendancePagePro
 
   const handleLogout = async () => {
     try {
-      if (stackUser) {
-        await stackUser.signOut();
-      }
       await fetch('/api/auth/logout', { method: 'POST' });
       window.location.href = '/';
     } catch (error) {
