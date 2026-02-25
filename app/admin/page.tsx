@@ -992,8 +992,6 @@ export default function AdminPage() {
               </div>
             )}
 
-            )}
-
             {activeTab === 'join-requests' && (
               <div>
                 <JoinRequestsManager />
