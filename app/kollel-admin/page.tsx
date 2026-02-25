@@ -39,6 +39,14 @@ interface PaymentRecord {
   created_at: string;
 }
 
+interface DailyAttendance {
+  date: string;
+  arrival_time: string;
+  departure_time: string;
+  minutes_attended: number;
+  created_at: string;
+}
+
 interface UserProfile {
   id: string;
   email: string;
@@ -66,6 +74,7 @@ export default function KollelAdminPage() {
   const [viewingUserProfile, setViewingUserProfile] = useState<UserProfile | null>(null);
   const [monthlyEarnings, setMonthlyEarnings] = useState<MonthlyEarning[]>([]);
   const [userPayments, setUserPayments] = useState<PaymentRecord[]>([]);
+  const [dailyAttendance, setDailyAttendance] = useState<DailyAttendance[]>([]);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
 
   useEffect(() => {
@@ -186,10 +195,11 @@ export default function KollelAdminPage() {
   const fetchUserDetails = async (userId: string) => {
     setIsLoadingDetails(true);
     try {
-      const [profileRes, earningsRes, paymentsRes] = await Promise.all([
+      const [profileRes, earningsRes, paymentsRes, attendanceRes] = await Promise.all([
         fetch(`/api/kollel-admin/users/${userId}`),
         fetch(`/api/kollel-earnings?user_id=${userId}`),
         fetch(`/api/kollel-payments?user_id=${userId}`),
+        fetch(`/api/kollel-admin/users/${userId}/attendance`),
       ]);
 
       if (profileRes.ok) {
@@ -206,6 +216,13 @@ export default function KollelAdminPage() {
         setUserPayments(paymentsData.payments || []);
       } else {
         alert('Failed to load user details');
+      }
+
+      if (attendanceRes.ok) {
+        const attendanceData = await attendanceRes.json();
+        setDailyAttendance(attendanceData.attendance || []);
+      } else {
+        setDailyAttendance([]);
       }
     } catch (error) {
       console.error('Error fetching user details:', error);
@@ -225,6 +242,7 @@ export default function KollelAdminPage() {
     setViewingUserProfile(null);
     setMonthlyEarnings([]);
     setUserPayments([]);
+    setDailyAttendance([]);
   };
 
   const handleLogout = async () => {
@@ -535,6 +553,47 @@ export default function KollelAdminPage() {
                         <p className="text-gray-900 font-medium">{viewingUserProfile?.account_type || 'Not provided'}</p>
                       </div>
                     </div>
+                  </div>
+
+                  {/* All Days & Times */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">All Days & Times</h3>
+                    {dailyAttendance.length > 0 ? (
+                      <div className="overflow-x-auto max-h-64 overflow-y-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50 sticky top-0">
+                            <tr>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Arrival</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Departure</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Minutes</th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {dailyAttendance.map((record, idx) => (
+                              <tr key={`${record.date}-${idx}`} className="hover:bg-gray-50">
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                                  {format(new Date(record.date), 'PP')}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                                  {record.arrival_time}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                                  {record.departure_time}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                                  {record.minutes_attended} min
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
+                        No attendance recorded yet.
+                      </div>
+                    )}
                   </div>
 
                   {/* Monthly Earnings */}
