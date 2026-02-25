@@ -33,6 +33,7 @@ export default function AttendanceCalendar({ year, month }: AttendanceCalendarPr
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedProgramForEdit, setSelectedProgramForEdit] = useState<AttendanceRecord | null>(null);
   const [programs, setPrograms] = useState<Array<{ id: string; name: string }>>([]);
+  const [handlerStatus, setHandlerStatus] = useState<{ hasHandlerProgram: boolean; applicationComplete: boolean } | null>(null);
   
   const now = new Date();
   const [currentDate, setCurrentDate] = useState<Date>(
@@ -58,8 +59,23 @@ export default function AttendanceCalendar({ year, month }: AttendanceCalendarPr
   useEffect(() => {
     fetchAttendance();
     loadPrograms();
+    loadHandlerStatus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentDate]);
+
+  const loadHandlerStatus = async () => {
+    try {
+      const res = await fetch('/api/handler-status', { cache: 'no-store' });
+      if (!res.ok) return;
+      const data = await res.json();
+      setHandlerStatus({
+        hasHandlerProgram: data.hasHandlerProgram,
+        applicationComplete: data.applicationComplete,
+      });
+    } catch (error) {
+      console.error('Error loading Handler status:', error);
+    }
+  };
 
   const loadPrograms = async () => {
     try {
@@ -384,6 +400,11 @@ export default function AttendanceCalendar({ year, month }: AttendanceCalendarPr
                             ) : (
                               <button
                                 onClick={() => {
+                                  const isHandlerProgram = program.name === 'Handler';
+                                  if (isHandlerProgram && handlerStatus && !handlerStatus.applicationComplete) {
+                                    router.push('/profile?handlerForm=application');
+                                    return;
+                                  }
                                   router.push(`/submit-attendance?date=${selectedDate}&program_id=${program.id}`);
                                 }}
                                 className="w-full sm:w-auto px-3 sm:px-3 py-2 sm:py-1.5 text-xs sm:text-sm bg-green-600 text-white rounded-md hover:bg-green-700 active:bg-green-800 transition-colors touch-manipulation min-h-[44px] sm:min-h-[36px] font-medium"

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { useUser } from '@stackframe/stack';
@@ -22,8 +22,31 @@ interface AttendanceFormPageProps {
 export default function AttendanceFormPage({ user }: AttendanceFormPageProps) {
   const router = useRouter();
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [isHandlerReady, setIsHandlerReady] = useState(false);
 
   const stackUser = useUser();
+
+  useEffect(() => {
+    const checkHandlerStatus = async () => {
+      try {
+        const res = await fetch('/api/handler-status', { cache: 'no-store' });
+        if (!res.ok) {
+          setIsHandlerReady(true);
+          return;
+        }
+        const data = await res.json();
+        if (!data.applicationComplete) {
+          router.push('/profile?handlerForm=application');
+          return;
+        }
+        setIsHandlerReady(true);
+      } catch (error) {
+        console.error('Error loading Handler status:', error);
+        setIsHandlerReady(true);
+      }
+    };
+    checkHandlerStatus();
+  }, [router]);
   
   const handleLogout = async () => {
     try {
@@ -48,6 +71,11 @@ export default function AttendanceFormPage({ user }: AttendanceFormPageProps) {
   };
 
   return (
+    !isHandlerReady ? (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-600 text-sm">Loading...</div>
+      </div>
+    ) : (
     <div className="min-h-screen bg-gray-50">
       <Navigation user={user} onLogout={handleLogout} />
 
@@ -72,6 +100,7 @@ export default function AttendanceFormPage({ user }: AttendanceFormPageProps) {
         </div>
       </div>
     </div>
+    )
   );
 }
 

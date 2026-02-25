@@ -33,6 +33,8 @@ export default function ProgramAttendancePage({ user }: ProgramAttendancePagePro
   const [programs, setPrograms] = useState<Program[]>([]);
   const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
   const [isLoadingPrograms, setIsLoadingPrograms] = useState(true);
+  const [handlerStatus, setHandlerStatus] = useState<{ hasHandlerProgram: boolean; applicationComplete: boolean } | null>(null);
+  const [isLoadingHandlerStatus, setIsLoadingHandlerStatus] = useState(true);
 
   const stackUser = useUser();
 
@@ -48,6 +50,7 @@ export default function ProgramAttendancePage({ user }: ProgramAttendancePagePro
       }
       
       loadPrograms(programIdParam || undefined);
+      loadHandlerStatus();
     }
   }, []);
 
@@ -75,6 +78,22 @@ export default function ProgramAttendancePage({ user }: ProgramAttendancePagePro
     }
   };
 
+  const loadHandlerStatus = async () => {
+    try {
+      const res = await fetch('/api/handler-status', { cache: 'no-store' });
+      if (!res.ok) return;
+      const data = await res.json();
+      setHandlerStatus({
+        hasHandlerProgram: data.hasHandlerProgram,
+        applicationComplete: data.applicationComplete,
+      });
+    } catch (error) {
+      console.error('Error loading Handler status:', error);
+    } finally {
+      setIsLoadingHandlerStatus(false);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       if (stackUser) {
@@ -94,6 +113,7 @@ export default function ProgramAttendancePage({ user }: ProgramAttendancePagePro
 
   const isKollelProgram = selectedProgram?.name === 'Keter Eliyahu Morning Kollel' || 
                           selectedProgram?.name === 'Keter Eliyahu Full Morning Kollel';
+  const isHandlerProgram = selectedProgram?.name === 'Handler';
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -177,10 +197,23 @@ export default function ProgramAttendancePage({ user }: ProgramAttendancePagePro
                         onSuccess={handleSuccess}
                       />
                     </div>
+                  ) : isHandlerProgram && handlerStatus && !handlerStatus.applicationComplete ? (
+                    <div>
+                      <p className="text-sm text-red-600 mb-3 sm:mb-4">
+                        You need to complete the Davening Programme application before submitting attendance for this program.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => router.push('/profile?handlerForm=application')}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-semibold"
+                      >
+                        Go to Profile to complete application
+                      </button>
+                    </div>
                   ) : (
                     <div>
                       <p className="text-sm text-gray-600 mb-3 sm:mb-4">
-                        Mark your attendance details for Rabbi Hendler's Minyan.
+                        Mark your attendance details for Rabbi Hendler&apos;s Minyan.
                       </p>
                       <AttendanceForm
                         date={selectedDate}
