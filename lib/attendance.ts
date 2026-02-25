@@ -25,6 +25,22 @@ export interface EarningsRecord {
   is_weekend: boolean;
 }
 
+export interface GlobalAttendanceUserSummary {
+  user_id: string;
+  email: string;
+  full_name: string | null;
+  days_attended: number;
+  learning_days: number;
+  learning_minutes: number;
+}
+
+export interface GlobalAttendanceSummary {
+  users: GlobalAttendanceUserSummary[];
+  totalUsersWithAttendance: number;
+  totalDays: number;
+  totalLearningMinutes: number;
+}
+
 const WEEKDAY_RATE = 100;
 const WEEKEND_RATE = 150;
 
@@ -356,5 +372,49 @@ export async function getAllUsersEarnings(): Promise<
     total_paid: Number(row.total_paid || 0),
     total_owed: Number(row.total_earned || 0) - Number(row.total_paid || 0),
   }));
+}
+
+export async function getGlobalAttendanceSummary(): Promise<GlobalAttendanceSummary> {
+  const rows = await sql`
+    SELECT
+      up.id AS user_id,
+      up.email,
+      up.full_name,
+      COUNT(DISTINCT a.date) AS days_attended,
+      SUM(CASE WHEN a.learned_early THEN 1 ELSE 0 END) AS learning_days,
+      SUM(
+        CASE
+          WHEN a.learned_early AND EXTRACT(DOW FROM a.date) = 6 THEN 25  -- Saturday
+          WHEN a.learned_early THEN 15  -- weekdays and Sundays
+          ELSE 0
+        END
+      ) AS learning_minutes
+    FROM attendance a
+    JOIN user_profiles up ON up.id = a.user_id
+    GROUP BY up.id, up.email, up.full_name
+  `;
+
+  const users: GlobalAttendanceUserSummary[] = rows.map((row: any) => ({
+    user_id: row.user_id,
+    email: row.email,
+    full_name: row.full_name,
+    days_attended: Number(row.days_attended || 0),
+    learning_days: Number(row.learning_days || 0),
+    learning_minutes: Number(row.learning_minutes || 0),
+  }));
+
+  const totalUsersWithAttendance = users.length;
+  const totalDays = users.reduce((sum, u) => sum + u.days_attended, 0);
+  const totalLearningMinutes = users.reduce(
+    (sum, u) => sum + u.learning_minutes,
+    0
+  );
+
+  return {
+    users,
+    totalUsersWithAttendance,
+    totalDays,
+    totalLearningMinutes,
+  };
 }
 

@@ -64,6 +64,22 @@ interface AdminStats {
   totalOwed: number;
 }
 
+interface AttendanceUserSummary {
+  user_id: string;
+  email: string;
+  full_name: string | null;
+  days_attended: number;
+  learning_days: number;
+  learning_minutes: number;
+}
+
+interface AttendanceSummary {
+  users: AttendanceUserSummary[];
+  totalUsersWithAttendance: number;
+  totalDays: number;
+  totalLearningMinutes: number;
+}
+
 interface ApplicationRecord {
   id: string;
   user_id: string;
@@ -124,6 +140,7 @@ export default function AdminPage() {
   const [expandedApplicationId, setExpandedApplicationId] = useState<string | null>(null);
   const [expandedResultId, setExpandedResultId] = useState<string | null>(null);
   const [resultsSearch, setResultsSearch] = useState('');
+  const [attendanceSummary, setAttendanceSummary] = useState<AttendanceSummary | null>(null);
 
   // Clean up the redirect parameter from URL after successful load
   useEffect(() => {
@@ -201,6 +218,7 @@ export default function AdminPage() {
       setUser(data.user);
       setIsLoading(false);
       fetchUsers();
+      fetchAttendanceSummary();
     } catch (error) {
       // If this is a redirect from sign-in, retry with backoff
       if (isStackRedirect && attempt < maxAttempts) {
@@ -223,6 +241,18 @@ export default function AdminPage() {
       }
     } catch (error) {
       console.error('Error fetching users:', error);
+    }
+  };
+
+  const fetchAttendanceSummary = async () => {
+    try {
+      const response = await fetch('/api/admin/attendance-stats');
+      if (response.ok) {
+        const data = await response.json();
+        setAttendanceSummary(data.summary || null);
+      }
+    } catch (error) {
+      console.error('Error fetching attendance stats:', error);
     }
   };
 
@@ -263,8 +293,8 @@ export default function AdminPage() {
     const totalPaid = users.reduce((sum, u) => sum + u.total_paid, 0);
     const totalOwed = totalEarned - totalPaid;
     const usersWithBalance = users.filter((u) => u.total_owed > 0).length;
-    // Placeholder for future: derive real learning minutes from earnings/attendance
-    const totalLearningMinutes = 0;
+    const totalLearningMinutes =
+      attendanceSummary?.totalLearningMinutes ?? 0;
 
     return {
       totalUsers: users.length,
@@ -513,12 +543,14 @@ export default function AdminPage() {
                   <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-6 text-white shadow-lg">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-green-100 text-sm font-medium">Total Users</p>
-                        <p className="text-3xl font-bold mt-1">{stats.totalUsers}</p>
+                        <p className="text-green-100 text-sm font-medium">Total Days Attended</p>
+                        <p className="text-3xl font-bold mt-1">
+                          {attendanceSummary?.totalDays ?? 0}
+                        </p>
                       </div>
                       <div className="bg-white bg-opacity-20 rounded-full p-3">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h4l3 8 4-16 3 8h4" />
                         </svg>
                       </div>
                     </div>
@@ -566,24 +598,24 @@ export default function AdminPage() {
                   </div>
 
                   <div className="bg-gray-50 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Users by Balance</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Users by Attendance</h3>
                     <div className="space-y-2">
-                      {users
-                        .filter((u) => u.total_owed > 0)
-                        .sort((a, b) => b.total_owed - a.total_owed)
+                      {(attendanceSummary?.users || [])
+                        .slice()
+                        .sort((a, b) => b.days_attended - a.days_attended)
                         .slice(0, 5)
                         .map((u) => (
                           <div key={u.user_id} className="flex justify-between items-center text-sm">
                             <span className="text-gray-700 truncate">
                               {u.full_name || u.email}
                             </span>
-                            <span className="font-semibold text-orange-600">
-                              R{u.total_owed.toFixed(2)}
+                            <span className="font-semibold text-blue-700">
+                              {u.days_attended} days · {(u.learning_minutes / 60).toFixed(1)} hrs
                             </span>
                           </div>
                         ))}
-                      {users.filter((u) => u.total_owed > 0).length === 0 && (
-                        <p className="text-gray-500 text-sm">No outstanding balances</p>
+                      {(!attendanceSummary || attendanceSummary.users.length === 0) && (
+                        <p className="text-gray-500 text-sm">No attendance recorded yet.</p>
                       )}
                     </div>
                   </div>
