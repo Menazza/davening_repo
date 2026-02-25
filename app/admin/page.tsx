@@ -59,6 +59,9 @@ interface AdminStats {
   totalUsers: number;
   usersWithBalance: number;
   totalLearningMinutes: number;
+  totalEarned: number;
+  totalPaid: number;
+  totalOwed: number;
 }
 
 interface ApplicationRecord {
@@ -256,15 +259,20 @@ export default function AdminPage() {
   };
 
   const calculateStats = (): AdminStats => {
+    const totalEarned = users.reduce((sum, u) => sum + u.total_earned, 0);
+    const totalPaid = users.reduce((sum, u) => sum + u.total_paid, 0);
+    const totalOwed = totalEarned - totalPaid;
     const usersWithBalance = users.filter((u) => u.total_owed > 0).length;
-    // Approximate learning minutes from earnings: each learning bonus equals the rate.
-    // We don't have per-day breakdown here, so we leave this as 0 for now or compute elsewhere.
+    // Placeholder for future: derive real learning minutes from earnings/attendance
     const totalLearningMinutes = 0;
 
     return {
       totalUsers: users.length,
       usersWithBalance,
       totalLearningMinutes,
+      totalEarned,
+      totalPaid,
+      totalOwed,
     };
   };
 
