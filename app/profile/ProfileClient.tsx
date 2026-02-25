@@ -136,7 +136,16 @@ export default function ProfileClient({ user: initialUser }: ProfileClientProps)
       }
       if (userProgramsResponse.ok) {
         const userProgramsData = await userProgramsResponse.json();
-        setUserProgramIds((userProgramsData.programs || []).map((p: any) => p.id));
+        const ids = (userProgramsData.programs || []).map((p: any) => p.id);
+        setUserProgramIds(ids);
+        // If we previously showed the \"enroll in at least one program\" message
+        // but the user is now enrolled, clear that message.
+        if (
+          ids.length > 0 &&
+          message?.text === 'Please enroll in at least one program before accessing other features.'
+        ) {
+          setMessage(null);
+        }
       }
       if (joinRequestsResponse.ok) {
         const joinData = await joinRequestsResponse.json();
@@ -280,6 +289,17 @@ export default function ProfileClient({ user: initialUser }: ProfileClientProps)
                 <p className="text-sm text-yellow-800 font-semibold">
                   You need to accept this month’s programme terms.
                 </p>
+                <p className="text-xs text-yellow-700 mt-1">
+                  The terms are the same each month. You can review them here:
+                </p>
+                <a
+                  href="/application"
+                  className="inline-flex items-center mt-1 text-xs font-semibold text-blue-700 hover:text-blue-900 underline"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  View full programme terms & POPIA statement
+                </a>
                 {handlerStatus.latestTermsAcceptedAt && (
                   <p className="text-xs text-yellow-700 mt-1">
                     Last accepted:{' '}
