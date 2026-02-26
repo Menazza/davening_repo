@@ -146,14 +146,12 @@ export default function AttendanceForm({ date, programId, onSuccess }: Attendanc
                 // If they came early, uncheck came_late
                 came_late: cameEarly ? false : formData.came_late,
                 minutes_late: cameEarly ? null : formData.minutes_late,
-                // If they uncheck came_early, also uncheck learned_early
-                learned_early: cameEarly ? formData.learned_early : false,
               });
             }}
             className="w-5 h-5 sm:w-5 sm:h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 touch-manipulation"
           />
           <span className="text-sm sm:text-base text-gray-700 font-medium">
-            Did you come early (15 minutes on weekdays, 25 minutes on Saturday)?
+            Did you come early (5 minutes)?
           </span>
         </label>
       </div>
@@ -164,18 +162,15 @@ export default function AttendanceForm({ date, programId, onSuccess }: Attendanc
             type="checkbox"
             checked={formData.learned_early}
             onChange={(e) => setFormData({ ...formData, learned_early: e.target.checked })}
-            disabled={!formData.came_early}
-            className="w-5 h-5 sm:w-5 sm:h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+            className="w-5 h-5 sm:w-5 sm:h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 touch-manipulation"
           />
           <span className="text-sm sm:text-base text-gray-700 font-medium">
-            Did you learn during that early time?
+            Did you complete the learning requirement (15 minutes on weekdays/Sunday, 25 minutes on Saturday)?
           </span>
         </label>
-        {!formData.came_early && (
-          <p className="text-xs sm:text-sm text-gray-500 mt-1 ml-8">
-            (Only applicable if you came early)
-          </p>
-        )}
+        <p className="text-xs sm:text-sm text-gray-500 mt-1 ml-8">
+          (Can be done with or without coming early)
+        </p>
       </div>
 
       <div>
