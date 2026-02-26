@@ -3,6 +3,8 @@ import { getAuthenticatedUser } from '@/lib/server-auth';
 import { getApplicationByUserId, upsertApplication, DaveningApplication } from '@/lib/application';
 import { updateUserProfile } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const user = await getAuthenticatedUser();

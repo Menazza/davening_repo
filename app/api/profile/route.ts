@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { updateUserProfile } from '@/lib/auth';
 import { getAuthenticatedUser } from '@/lib/server-auth';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const user = await getAuthenticatedUser();

@@ -4,6 +4,8 @@ import { getUserProgramsWithDetails } from '@/lib/user-programs';
 import { getApplicationByUserId, isApplicationComplete } from '@/lib/application';
 import { hasAcceptedTermsThisMonth, getLatestTermsAcceptance } from '@/lib/terms';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const user = await getAuthenticatedUser();

@@ -3,6 +3,8 @@ import { getAuthenticatedUser } from '@/lib/server-auth';
 import { sql } from '@/lib/db';
 import { getUserProgramsWithDetails } from '@/lib/user-programs';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const user = await getAuthenticatedUser();
